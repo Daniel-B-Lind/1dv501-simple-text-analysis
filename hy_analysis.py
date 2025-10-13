@@ -59,11 +59,10 @@ def fetch_basic_statistics(file: hy.HyTextFile) -> tuple:
                 words = line.split()
                 line_number_of_words = len(words)
 
-                # Since we split on spaces, we can calculate how many spaces there were 
-                # by taking the length of words - 1. But we also can't forget about newlines (one for each line)
-                # which nicely counteracts the -1 from before!
-                # I'm not going to acknowledge CRLF because I don't think you should be using Windows anyway.
-                file_number_of_spaces += len(words)
+                # Count spaces. I'm also going to count each
+                # line itself as a space (LF) to better approximate actual
+                # character counts. CRLF need not apply - do not use Windows.
+                file_number_of_spaces += (line.count(' ') + 1)
 
                 # Count characters in all words (excluding spaces)
                 line_number_of_characters = sum(len(word) for word in words)
