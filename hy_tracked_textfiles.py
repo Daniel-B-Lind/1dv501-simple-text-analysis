@@ -38,16 +38,14 @@ class HyTextFile:
                 total number of words
                 total number of characters (no spaces)
                 total number of spaces
-                average words per line
-                average chars per word
         
         Returns:
             None
         """
 
-        # Sanity check - does our tuple have 6 elements as expected?
-        if(len(stats) != 6):
-            raise ValueError("Malformed basic statistics tuple received - does not contain 6 elements")
+        # Sanity check - does our tuple have 4 elements as expected?
+        if(len(stats) != 4):
+            raise ValueError("Malformed basic statistics tuple received - does not contain 4 elements")
         
         # Unpack tuple
         (
@@ -55,11 +53,92 @@ class HyTextFile:
             self.number_of_words, 
             self.number_of_characters, 
             self.number_of_spaces, 
-            self.average_words_per_line,
-            self.average_characters_per_word
         ) = stats
         
         self.number_of_characters_and_spaces = self.number_of_characters + self.number_of_spaces
+    
+    def append_word_frequency_statistics(self, stats: tuple):
+        """
+        Stores the results of a corresponding Word Frequency Analysis in HyTextFile instance.
+
+        Arguments:
+            stats: tuple containing:
+                dictionary containing:
+                    word occurrences (key: word(str), value: occurrences(int))
+                dictionary containing
+                    word length occurrences (key: length(int), value: occurrences(int))
+        """
+        (
+            self.word_occurrences,
+            self.word_length_occurrences
+        ) = stats
+
+    def get_average_words_per_line(self, round_to: int = 3) -> float:
+        """
+        Returns the average words per line, rounded to round_to decimals.
+        """
+        words = self.number_of_words
+        lines = self.number_of_lines
+        average = words / lines
+        rounded = round(average, round_to)
+        return rounded
+
+    def get_average_characters_per_word(self, round_to: int = 3) -> float:
+        """
+        Returns the average characters per word, rounded to round_to decimals.
+        """
+        characters = self.number_of_characters
+        words = self.number_of_words
+        average = characters / words
+        rounded = round(average, round_to)
+        return rounded
+
+    
+    def get_orphan_words(self) -> tuple[str]:
+        """
+        Finds words which only occurred a single time.
+
+        Returns:
+            Tuple of every unique word which only has a single occurrence in this HyTextFile
+        """
+        # Find amount of unique words (words with a count of only 1)
+        orphan_words = []
+        for word, count in self.word_occurrences.items():
+            if count == 1:
+                orphan_words.append(word)
+        
+        return tuple(orphan_words)
+
+    def get_unique_words(self) -> tuple[str]:
+        """
+        Returns a tuple of every word which appears in the HyTextFile, with no duplicates,
+        ordered by amount of appearances.
+        """
+        unique_words = []
+        for word in self.word_occurrences.keys():
+            unique_words.append(word)
+        
+        return tuple(unique_words)
+    
+    def get_top_words(self, top_n: int) -> tuple[str]:
+        """
+        Finds the N most common words.
+        May return a smaller tuple if the requested number of values
+        exceeds the size of the dictionary.
+
+        Returns:
+            Tuple containing N of the most common words.
+        """
+        words = self.word_occurrences
+
+        # Is top_n too big? If so, downsize it...
+        if(top_n > len(words)):
+            top_n = len(words)
+
+        # Dictionary is already sorted, so we simply taken N off the top
+        most_common_words = list(words.keys())[:top_n]
+        return most_common_words
+
 
 
 class HyFileInventory:

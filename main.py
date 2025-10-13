@@ -31,7 +31,7 @@ class OperationCancelled(Exception):
         self.message = message
         super().__init__(self.message)
 
-def generated_stylized_content_box(header_text: str, padding: int = 2) -> str:
+def generate_stylized_content_box(header_text: str, padding: int = 2) -> str:
     """
     Generates a unicode header for the menu prompt.
     Notice: if header_text exceeds screen width, this may cause graphical issues.
@@ -91,7 +91,7 @@ def print_menu_prompt(options_menu_content: str, inventory: hy.HyFileInventory):
     # TODO: base width of dividing lines on intro header?
     
     # Generate content box for the possibly options. 
-    options_menu_content_box = generated_stylized_content_box(options_menu_content)
+    options_menu_content_box = generate_stylized_content_box(options_menu_content)
     print(options_menu_content_box)
 
     # Print status (i.e. what files are loaded)
@@ -167,8 +167,13 @@ def interactive_load_file_prompt(inventory: hy.HyFileInventory):
     print("Successfully loaded file! Starting analysis.")
     
     print(" [1] Performing basic analysis... ", end='')
-    basic_statistics = analyse.calculate_basic_statistics(loaded_file)
+    basic_statistics = analyse.fetch_basic_statistics(loaded_file)
     loaded_file.append_basic_statistics(basic_statistics)
+    print("done!")
+
+    print(" [2] Performing word frequency analysis... ", end='')
+    word_statistics = analyse.fetch_word_frequency_statistics(loaded_file)
+    loaded_file.append_word_frequency_statistics(word_statistics)
     print("done!")
     
     # TODO: perform analysis here and save results in the file we just added
@@ -176,21 +181,10 @@ def interactive_load_file_prompt(inventory: hy.HyFileInventory):
     print("Ooops, no further functionality exists yet. Pretend I did it!")
     return
 
-def interactive_unload_file_prompt(inventory: hy.HyFileInventory):
-    # If there aren't any files which are tracked, then there's nothing to unload.
-    if(len(inventory.files) < 1):
-        print("There aren't any loaded files to unload.")
-        return
-    
-    file = select_file_prompt(inventory)
-    
-    # If the operation was canceled, return early.
-    if file == None:
-        return
-
+def unload_file(inventory: hy.HyFileInventory, file_to_remove: hy.HyTextFile):
     # Remove from inventory
     try:
-        inventory.files.remove(file)
+        inventory.files.remove(file_to_remove)
     except:
         print("An unexpected error occurred while attempting to unload that file.")
         return
@@ -231,7 +225,7 @@ def select_file_prompt(inventory: hy.HyFileInventory) -> hy.HyTextFile:
             print("You must select an index corresponding to a loaded file.")
     return inventory.files[user_choice]
 
-def prepare_to_request_result(inventory: hy.HyFileInventory) -> list[hy.HyTextFile]:
+def prepare_to_request_result(inventory: hy.HyFileInventory) -> hy.HyTextFile:
     """
     Query the user on which file they want the results of. If only one file is available,
     automatically chooses it.
@@ -262,6 +256,9 @@ def list_text_files() -> str:
             file_list_clean += (file + '\n')
     return file_list_clean.strip()
 
+def print_word_frequency_list():
+    raise NotImplementedError
+
 def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
     """
     Primary function to execute user's desired effects.
@@ -285,8 +282,19 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
     Does not return a value - delegates action and prints to screen.
     """
 
+    # If the operation we're planning to do requires a file, select one.
+    CHOICES_REQUIRING_LOADED_FILE = 'uebwsc'
+    if(user_choice in CHOICES_REQUIRING_LOADED_FILE):
+        try:
+            selected_file = prepare_to_request_result(master_file_inventory)
+        except OperationCancelled:
+            print("Cancelled.")
+            return
+        except ValueError:
+            print("No files are loaded! Load one with <L>")
+            return
+
     match(user_choice):
-        
         # - Meta -
         case 'd': # Display files in current directory
             text_files = list_text_files()
@@ -298,7 +306,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
             return
 
         case 'u': #Unload file
-            interactive_unload_file_prompt(master_file_inventory)    
+            unload_file(master_file_inventory, selected_file)
             return
 
         case 'e': # Export results
@@ -312,20 +320,14 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
 
         # - Simple Analysis Queries - 
         case 'b': # Basic statistics
-            try:
-                textfiles = prepare_to_request_result(master_file_inventory)
-            except OperationCancelled:
-                print("Cancelled.")
-                return
-            except ValueError:
-                print("Load a file first.")
-                return
-
-            json_result = result_handler.fetch_basic_statistics(textfiles)
+            json_result = result_handler.serialize_basic_statistics(selected_file)
             pretty_result = result_handler.json_to_pretty(json_result)
-            
             print(pretty_result)
+
             return
+        
+        case 'w': # Word frequency statistics
+            print_word_frequency_list()
 
         case _:
             print('Invalid selection or option not yet implemented.')
@@ -369,7 +371,7 @@ def main():
     Program entrypoint.
     """
     welcome_prompt = get_prompt_file_contents("welcome_prompt.txt")
-    intro_header = generated_stylized_content_box(welcome_prompt)
+    intro_header = generate_stylized_content_box(welcome_prompt)
     
     print(intro_header)
 

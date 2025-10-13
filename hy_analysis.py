@@ -7,12 +7,23 @@ Author: Daniel Lind
 
 This file defines the functions which perform the text analysis itself.
 
+Addendum - 
+    You will notice that I iterate through the file line-by-line several times,
+    in different "passes." This is because I reasoned that the performance cost
+    of iterating through every line several times was worth it for the readability
+    and modularity of the functions in this file.
+
+    It would, technically, be more performant to do this all in a single pass
+    through the file. But for the datasets we're dealing with, which are in 
+    all likelihood <50MB, I reasoned that code quality mattered more.
+
 """
 
 # Imports
 import hy_tracked_textfiles as hy
+import re
 
-def calculate_basic_statistics(file: hy.HyTextFile) -> tuple:
+def fetch_basic_statistics(file: hy.HyTextFile) -> tuple:
     """
     Calculates basic statistics given a file object.
 
@@ -25,8 +36,6 @@ def calculate_basic_statistics(file: hy.HyTextFile) -> tuple:
         • Total number of words
         • Total number of characters (without spaces)
         • Total number of characters which are spaces
-        • Average words per line
-        • Average characters per word
     """
 
     path = file.path
@@ -46,12 +55,15 @@ def calculate_basic_statistics(file: hy.HyTextFile) -> tuple:
 
                 file_number_of_lines += 1
 
-                # Split into words (for simplicity let's just assume a space delimits each word)
-                words = line.split(' ')
+                # Split into words (whitespace delimiter)
+                words = line.split()
                 line_number_of_words = len(words)
 
-                # Since we split on spaces, we can calculate how many spaces there were via:
-                file_number_of_spaces += (len(words) - 1)
+                # Since we split on spaces, we can calculate how many spaces there were 
+                # by taking the length of words - 1. But we also can't forget about newlines (one for each line)
+                # which nicely counteracts the -1 from before!
+                # I'm not going to acknowledge CRLF because I don't think you should be using Windows anyway.
+                file_number_of_spaces += len(words)
 
                 # Count characters in all words (excluding spaces)
                 line_number_of_characters = sum(len(word) for word in words)
@@ -73,22 +85,72 @@ def calculate_basic_statistics(file: hy.HyTextFile) -> tuple:
         file_number_of_lines,
         file_number_of_words,
         file_number_of_characters,
-        file_number_of_spaces,
-        average_words_per_line,
-        average_characters_per_word,
+        file_number_of_spaces
     )
 
-def perform_word_analysis(file: hy.HyTextFile) -> tuple:
-    """
-    Given a file object, this function will find out the:
-        - the top 10 most common words
-        - the distribution of letters
-        - unique words
-        - words appearing only once
-    
+def fetch_word_frequency_statistics(file: hy.HyTextFile) -> tuple:
+    """    
     Arguments:
         file: HyTextFile object
     
     Returns:
-        Tuple of the 4 traits listed above.
+        Tuple of the following:
+            - dictionary of word occurrences (key: word(str), value: occurrences(int))
+            - dictionary of word lengths (key: length(int), value: occurrences(int))
     """
+
+    path = file.path
+
+    # Since we're analyzing words, let's normalize each word.
+    # We'll convert everything to lowercase, but beyond that,
+    # we only care about characters which actually make up words.
+    # 
+    # This can be expanded on to support other languages, or be
+    # adjusted more granularly depending on what characters one
+    # considers "part of a word."
+    VALID_CHARS = "abcdefghijklmnopqrstuvwxyzåäö'-"
+
+    # Since we are dealing with 'big data', the simple solution
+    # to consider substrings or rebuild each word based by comparing
+    # against VALID_CHARS would be horribly slow. For this reason,
+    # we'll use a compiled Regex.
+    pattern = re.compile(f"[^{VALID_CHARS}]+") 
+
+    # Key: word in lowercase
+    # Value: number of occurrences
+    word_count = {}
+
+    # Key: word length
+    # Value: number of occurrences
+    word_lengths = {}
+
+    # Iterate through text file and populate dictionaries.
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
+        for line in f:
+            words = line.split()
+            for word in words:
+                # Normalize by uncapitalizing and subsequently regexing
+                word = word.lower()
+                clean_word = pattern.sub('', word)
+                if clean_word:
+                    # Append to both dictionaries
+                    if clean_word in word_count:
+                        word_count[clean_word] += 1
+                    else:
+                        word_count[clean_word] = 1
+                    
+                    length = len(clean_word)
+                    if length in word_lengths:
+                        word_lengths[length] += 1
+                    else:
+                        word_lengths[length] = 1
+    
+    # Dictionaries are fully populated.
+    # Sort them by values (https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value)
+    sorted_word_count = dict(sorted(word_count.items(), key=lambda item: item[1], reverse=True))
+    sorted_word_lengths = dict(sorted(word_lengths.items(), key=lambda item: item[1], reverse=True))
+
+    return (
+        sorted_word_count,
+        sorted_word_lengths,
+    )

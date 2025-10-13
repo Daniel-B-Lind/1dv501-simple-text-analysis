@@ -35,17 +35,35 @@ def json_to_pretty(json_str: str) -> str:
     for key, value in data.items():
         # Convert snake_case to Title Case
         readable_key = key.replace('_', ' ').capitalize()
+
+        # If value is a number, format it
+        if isinstance(value, int):
+            value = format_number(value)
+
         result += (f"{readable_key}: {value}\n")
     
     return result.strip()
 
-
-def fetch_basic_statistics(files: hy.HyTextFile) -> str:
+def format_number(number: int) -> str:
     """
-    Fetches the basic statistics of one or multiple HyTextFiles.
+    Converts an integer to a human-readable string with commas separating
+    thousands, millions, etc.
+    
+    Arguments:
+        number: integer to format.
+    
+    Returns:
+        Formatted number as a string.
+    """
+    return f"{number:,}"
+
+
+def serialize_basic_statistics(file: hy.HyTextFile) -> str:
+    """
+    Fetches the basic statistics of a HyTextFile.
 
     Arguments:
-        files: list of files to consider. can be a single file or several.
+        file: HyTextFile object to serialize the statistics of
     
     Returns:
         JSON formatted basic statistics
@@ -53,13 +71,30 @@ def fetch_basic_statistics(files: hy.HyTextFile) -> str:
     
     # Dictionary to hold the final results
     result = {
-        'total_number_of_lines': file.number_of_lines,
-        'total_number_of_words': file.number_of_words,
-        'total_number_of_characters': file.number_of_characters,
-        'total_number_of_characters_and_spaces': file.number_of_characters_and_spaces,
-        'total_average_words_per_line': file.average_words_per_line,
-        'total_average_characters_per_word': file.average_characters_per_word,
+        'number_of_lines': file.number_of_lines,
+        'number_of_words': file.number_of_words,
+        'number_of_unique_words': len(file.get_unique_words()),
+        'number_of_characters': file.number_of_characters,
+        'number_of_characters_and_spaces': file.number_of_characters_and_spaces,
+        'average_words_per_line': file.get_average_words_per_line(),
+        'average_characters_per_word': file.get_average_characters_per_word()
     }
 
     # Return a JSON dump of the dictionary, effectively serializing it.
     return json.dumps(result)
+
+def serialize_word_frequency_statistics(file: hy.HyTextFile) -> str:
+    """
+    Fetches the stored word frequency statistics of a HyTextFile.
+
+    Arguments:
+        file: HyTextFile object to serialize the statistics of.
+
+    Returns:
+        JSON formatted string of statistics
+    """
+
+    # Dictionary
+    result = {
+        
+    }
