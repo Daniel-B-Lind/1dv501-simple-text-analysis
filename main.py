@@ -18,17 +18,17 @@ In the future, the TUI helpers may be moved to another file.
 import os.path   # ...to verify existence of dependency files
 import hy_tracked_textfiles as hy   # ...contains classes to track data on files
 
-"""
-    Generates a unicode based header for the menu prompt.
-    Notice: if header_text exceeds screen size, this may cause graphical issues.
+def generated_stylized_content_box(header_text: str, padding: int = 2):
+    """
+    Generates a unicode header for the menu prompt.
+    Notice: if header_text exceeds screen width, this may cause graphical issues.
 
     Args:
         header_text: Contents of header.
         padding: Amount of whitespace on either side of the header_text.
 
     Returns multiline string of the header, suitable to be passed into print() immediately.
-"""
-def generated_stylized_content_box(header_text: str, padding: int = 2):
+    """
     # This may have trouble displaying on Jupyter.
     # For now, I am testing this in VSCode.
     # TODO: Evaluate viability on JupyterHub.
@@ -56,33 +56,41 @@ def generated_stylized_content_box(header_text: str, padding: int = 2):
 
     return header
 
-"""
-    [!] this will be moved into another file eventually [!]
-
-    Returns the path to the file which is currently selected for analysis.
+def get_loaded_files(inventory: hy.HyFileInventory):
+    """
+    Returns the names of files which are currently selected in a tuple.
     Returns None if no file selected.
-"""
-def get_current_selected_file():
-    # NYI
-    return None
+    """
+    # No files? No tuples. 
+    if(len(inventory.files) < 1):
+        return None
+    
+    # Get the name of each file in a list
+    names = []
+    for file in inventory.files:
+        names.append(file.shortname)
+    
+    return tuple(names)
+    
 
-def print_menu_prompt(options_menu_content: str):
+def print_menu_prompt(options_menu_content: str, inventory: hy.HyFileInventory):
     # TODO: base width of dividing lines on intro header?
     
-    # Print current status as a cool header.
-    current_selected = get_current_selected_file()
-    status_header_content = "No file is selected. Choose one by selecting S." if current_selected == None else f"Currently working with:\n{current_selected}"
-    status_header = generated_stylized_content_box(status_header_content)
-    print(status_header)
+    # Generate content box for the possibly options. 
+    options_menu_content_box = generated_stylized_content_box(options_menu_content)
+    print(options_menu_content_box)
 
-    print(options_menu_content)
+    # Print status (i.e. what files are loaded)
+    current_selected = get_loaded_files(inventory)
+    status = "No file is selected. Choose one by selecting <L>." if current_selected == None else f"Currently working with:\n{", ".join(current_selected)}"
+    print(status)
 
-"""
+def normalize_user_input(userstr: str):
+    """
     Helper function.
     When passed a user input from the main menu loop,
     this will normalize it to be lowercase and a single character.
-"""
-def normalize_user_input(userstr: str):
+    """
     # For now, let's allow inputs with a length over 1.
     # This could be useful, since 'Quit' will resolve to 'q' and that's all we care about.
     # On the other hand this could cause confusion, since typing 'quaaludes' will also quit the program...
@@ -96,7 +104,8 @@ def normalize_user_input(userstr: str):
     # First character of user string
     return lowercase_string[0]
 
-"""
+def get_prompt_file_contents(template_path: str):
+    """
     Reads a prompt/template file from disk and returns its contents,
     stripping out comments. Raises error if file does not exist
 
@@ -105,8 +114,7 @@ def normalize_user_input(userstr: str):
     
     Returns:
         Contents of file located at template_path, with comments stripped.
-"""
-def get_prompt_file_contents(template_path: str):
+    """
     # As a sanity check, make sure the file exists.
     # If the user deleted it, y'know, break.
     # TODO: 'Real' error handling.
@@ -128,24 +136,70 @@ def get_prompt_file_contents(template_path: str):
 
     return options_menu_content
 
-def interactive_load_file_prompt(masterFileInventory: hy.HyFileInventory):
-    file_to_load = None
-    while(file_to_load == None):
+def interactive_load_file_prompt(inventory: hy.HyFileInventory):
+    loaded_file = None
+    while(loaded_file == None):
         user_input = input("Enter path to text file:")
         try:
-            masterFileInventory.add_file(user_input)
+            loaded_file = inventory.add_file(user_input)
         except FileNotFoundError:
             print("No such file could be found.")
+        except ValueError:
+            print("Please provide a valid .TXT file")
         except Exception as e:
             print("Please try again. An unexpected error has occurred: ", e)
     
+
+    print("Successfully loaded file! Starting analysis...")
     # TODO: perform analysis here and save results in the file we just added
     # for now, just return
-    print("Successfully loaded file!")
+    print("Ooops, no analysis functionality exists yet. Pretend I did it!")
     return
 
+def interactive_unload_file_prompt(inventory):
+    # If there aren't any files which are tracked, then there's nothing to unload.
+    if(len(inventory.files) < 1):
+        print("There aren't any loaded files to unload.")
+        return
+    
+    print("==========================")
+    print("A. Abort without unloading")
 
-"""
+    # List every tracked file and ask them which one to remove.
+    number_of_files = len(inventory.files)
+    for i in range(number_of_files):
+        print(f"{i}. {inventory.files[i].shortname}")
+    
+    print("==========================")
+    user_choice = -1
+    # Loop until the user provides a valid choice which is inbounds
+    while(user_choice < 0 or user_choice >= number_of_files):
+        user_input = input("Enter index of file to remove >")
+
+        # Special case - if the user aborts (via A), return early and do not pop.
+        if(user_input.lower() == 'a'):
+            return
+        
+        # Otherwise, make sure it's in range (keep looping if it isn't)
+        try:
+            user_choice = int(user_input)
+            if(user_choice >= number_of_files or user_choice < 0):
+                raise ValueError
+        except:
+            print("You must select an index corresponding to a loaded file.")
+
+    # Remove from inventory
+    try:
+        inventory.files.pop(user_choice)
+    except:
+        print("An unexpected error occurred while attempting to unload that file.")
+        return
+    
+    print(f"Successfully unloaded file!")
+
+
+def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
+    """
     Primary function to execute user's desired effects.
 
     Arguments:
@@ -164,24 +218,39 @@ def interactive_load_file_prompt(masterFileInventory: hy.HyFileInventory):
             c = print char analysis
 
     Does not return a tangible value - performs action and prints to screen.
-"""
-def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
+    """
+
     match(user_choice):
+        
+        # - Meta -
+        
         case 'l':
             interactive_load_file_prompt(master_file_inventory)
+            return
+
+        case 'u':
+            interactive_unload_file_prompt(master_file_inventory)    
+            return
+
+        case 'e':
+            print("Not yet implemented!")
+            return
 
         case 'q':
-            # Handled directly in main_menu_loop. Simply return
+            # Handled directly in menu_loop. Simply return.
             return
+
+        # - Analysis Queries - 
+        
 
         case _:
             print('Invalid selection.')
             return
 
-"""
+def menu_loop(main_inventory: hy.HyFileInventory):
+    """
     Main program loop. Handles the general flow of prompting the user and performing actions.
-"""
-def main_menu_loop():
+    """
     # Read the contents of option_prompt.txt into a cached options_menu_content,
     # to avoid reading the file every time we print the menu.
     template_path = 'option_prompt.txt'
@@ -191,7 +260,7 @@ def main_menu_loop():
     
     # Quit if the user decides to abort program loop.
     while(user_choice != 'q'):
-        print_menu_prompt(options_menu_content)
+        print_menu_prompt(options_menu_content, main_inventory)
 
         # Prompt user for selection until it's not blank.
         user_input = None
@@ -202,28 +271,25 @@ def main_menu_loop():
         user_choice = user_input
 
         # Perform user's decided action 
-        execute(user_choice)
+        execute(main_inventory, user_choice)
 
+        # Hold for user input.
+        _ = input("Press enter to continue...")
 
-
-"""
-    Program entrypoint.
-"""
 def main():
-    intro_header = generated_stylized_content_box(
-"""
-Welcome to HyTextAnalysis!
-You will be shown a TUI menu of different operations.
-    
-To start, you should probably select a text file.
-
-Happy analyzing!
-""")
+    """
+    Program entrypoint.
+    """
+    welcome_prompt = get_prompt_file_contents("welcome_prompt.txt")
+    intro_header = generated_stylized_content_box(welcome_prompt)
     
     print(intro_header)
 
+    # Instantiate the main inventory of text files
+    main_inventory = hy.HyFileInventory()
+
     # Transfer executon to main menu loop. Will return here (and exit) when the user quits.
-    main_menu_loop()
+    menu_loop(main_inventory)
 
     # We have broken out of the main loop - the application will exit.
     return

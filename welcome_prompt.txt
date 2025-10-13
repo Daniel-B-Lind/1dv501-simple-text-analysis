@@ -1,0 +1,8 @@
+# Shown once, when the program starts.
+
+Welcome to HyTextAnalysis!
+You will be shown a TUI menu of different operations.
+    
+To start, you should probably select a text file.
+
+Happy analyzing!
