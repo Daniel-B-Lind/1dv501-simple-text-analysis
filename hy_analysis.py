@@ -1,4 +1,15 @@
+"""
 
+1DV501 Final Project - HyTextAnalysis
+hy_analysis.py
+
+Author: Daniel Lind
+
+This file defines the functions which perform the text analysis itself.
+
+"""
+
+# Imports
 import hy_tracked_textfiles as hy
 
 def calculate_basic_statistics(file: hy.HyTextFile):
@@ -9,7 +20,7 @@ def calculate_basic_statistics(file: hy.HyTextFile):
         file: HyTextFile entry of a tracked file
     
     Returns:
-        Tuple containing, in order:
+        A tuple containing, in order:
         • Total number of lines
         • Total number of words
         • Total number of characters (without spaces)

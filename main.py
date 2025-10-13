@@ -17,6 +17,7 @@ In the future, the TUI helpers may be moved to another file.
 # Imports
 import os.path   # ...to verify existence of dependency files
 import hy_tracked_textfiles as hy   # ...contains classes to track data on files
+import hy_analysis as analyse
 
 def generated_stylized_content_box(header_text: str, padding: int = 2):
     """
@@ -150,10 +151,16 @@ def interactive_load_file_prompt(inventory: hy.HyFileInventory):
             print("Please try again. An unexpected error has occurred: ", e)
     
 
-    print("Successfully loaded file! Starting analysis...")
+    print("Successfully loaded file! Starting analysis.")
+    
+    print(" [1] Performing basic analysis... ", end='')
+    basic_statistics = analyse.calculate_basic_statistics(loaded_file)
+    loaded_file.append_basic_statistics(basic_statistics)
+    print("done!")
+    
     # TODO: perform analysis here and save results in the file we just added
     # for now, just return
-    print("Ooops, no analysis functionality exists yet. Pretend I did it!")
+    print("Ooops, no further functionality exists yet. Pretend I did it!")
     return
 
 def interactive_unload_file_prompt(inventory):
@@ -197,6 +204,55 @@ def interactive_unload_file_prompt(inventory):
     
     print(f"Successfully unloaded file!")
 
+def prepare_to_request_result(inventory: hy.HyFileInventory):
+    """
+    Prompts the user if they want to query the analysis results of a single file,
+    or all loaded files combined.
+
+    Returns a list of files to display the results of.
+    If only one file is loaded, automatically returns it.
+    If no files are loaded, returns None.
+    """
+
+    if(len(inventory.files) == 0):
+        # There's nothing to return the results of..
+        return None
+    elif(len(inventory.files) == 1):
+        # If there's only a single loaded file, we don't want to bother the user since
+        # they only have one choice anyway.
+        return inventory.files[0]
+    # Alright, if we're here, we do actually have to prompt the user.
+    print("==========================")
+    print("C. Cancel Operation")
+    print("A. All Files")
+
+    # List every tracked file and ask them which one to remove.
+    number_of_files = len(inventory.files)
+    for i in range(number_of_files):
+        print(f"{i}. {inventory.files[i].shortname}")
+    
+    print("==========================")
+    user_choice = -1
+    # Loop until the user provides a valid choice which is inbounds
+    while(user_choice < 0 or user_choice >= number_of_files):
+        user_input = input("Enter index of file to remove >")
+
+        # Special case - if the user aborts, return None early.
+        if(user_input.lower() == 'c'):
+            return None
+        # Special case 2 - return all elements
+        if(user_input.lower() == 'a'):
+            return inventory.files
+        
+        # Otherwise, make sure it's in range (keep looping if it isn't)
+        try:
+            user_choice = int(user_input)
+            if(user_choice >= number_of_files or user_choice < 0):
+                raise ValueError
+        except:
+            print("You must select an index corresponding to a loaded file.")
+    return inventory.files[user_choice]
+
 
 def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
     """
@@ -217,7 +273,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
             s = print sentence analysis
             c = print char analysis
 
-    Does not return a tangible value - performs action and prints to screen.
+    Does not return a value - delegates action and prints to screen.
     """
 
     match(user_choice):
@@ -241,7 +297,10 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
             return
 
         # - Analysis Queries - 
-        
+        case 'b':
+            textfiles = prepare_to_request_result(master_file_inventory)
+            print(fetch_basic_statistics(textfiles))
+            return
 
         case _:
             print('Invalid selection.')
