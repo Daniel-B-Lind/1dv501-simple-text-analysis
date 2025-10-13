@@ -1,0 +1,14 @@
+# This file contains the menu prompt that is shown to the user in the main menu.
+# Comment lines are ignored, but everything else will be shown as-is every time to main menu is displayed.
+# Whitespace included.
+-= Meta =-
+[L]oad a new text file
+[U]nload a text file
+[E]xport full analysis results
+[Q]uit program
+
+-= Perform Analysis =-
+[B]asic Statistics (NYI)
+[W]ord Frequency Analysis
+[S]entence Analysis
+[C]haracter Analysis
