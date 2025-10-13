@@ -1,93 +1,96 @@
 # 1DV501-Final
 
+This year, the project will be the same for everyone
+• The basis of the project is to take a “large” text mass and analys its text
+‣ A large text means a sizable book
+• Doing so, you will cover several important aspects of Python programming:
+‣ I/O in an efficient way
+‣ Data structures like lists, sets and dictionaries
+‣ Working with user input
+‣ Displaying data visually using Matplotlib
 
+The project will be described in full first, but for different grades some of the parts can be omitted
+• The program will have a text based user interface with different menu options
+• A file, selected by the user, must be loadable from a list of possible files
+‣ This is the file to be analysed
+• Create statistics from the file
+• Visualise the statistics
+• Save a file to disk containing the statistics
 
-## Getting started
+Statistics
+• The following statistics are to be handled:
+‣ Basic statistics (number of lines, words, characters; average words per line, characters per word) 
+‣ Word analysis (top 10 words, word length distribution, unique words, words only appearing once)
+‣ Sentence analysis (average words per sentence, longest and shortest, sentence distribution)
+‣ Character analysis (letter frequency distribution, punctuation statistics, case distribution)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+• All visualisation will be done using Matplotlib
+• For each analysis, you will show graphs for the statistics
+‣ Where suitable
+‣ For example:
+– Basic statistics: bar chart of text composition and pie chart of character types
+– Word analysis: bar chart of most common words and histogram of word lengths
+• Show several (suitable) graph types (bar chart, histogram, pie chart and so on)
+• Make sure that labels are easy to read (that is, not overlapping)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+• As memory is limited on Jupyter, it is important that you never load the entire file into memory
+• Let’s restate that:
+**Do not load the entire file into memory**
+• Use several of the built-in data structures
+‣ Dictionaries for counting words
+‣ Lists for lengths
+‣ Sets for unique words
 
-## Add your files
+Code Quality
+• This is the first part that you will submit for review
+• The code quality is therefore very important and can be the reason for a higher or lower grade
+• Remember:
+‣ Use functions to break down the problem into manageable pieces
+‣ Pass data between functions using parameters and return values, that is, do not use global variables
+‣ Each function should have a single, clear responsibility
+‣ Separate data processing from visualisation
+‣ Keep the main programme loop clean and readable
+• Suitable comments are part of good code quality
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Text File
+• To show that your program works, you will need to use it on a large text, preferably a book
+• The size of the book must be larger than one megabyte
+• You will find many really large books on Project Gutenberg and we recommend that you use one of those
+‣ Try to find something that not “everyone else” is using
+• For Swedish speaking students, the site Project Runeberg can be used instead
+‣ For other languages, there should be similar services and you may use any of those if you like
+• Important: when developing your program, use a smaller file to make the program quicker and easier to debug
 
-```
-cd existing_repo
-git remote add origin http://librarian.teaq/production/1dv501-final.git
-git branch -M main
-git push -uf origin main
-```
+Requirements for All Grades
+• For the grade E and above, the following needs to be done:
+‣ Have a menu with options
+‣ List all text files in the current directory
+‣ Process a selected file
+‣ Show basic statistics like number of lines, words and characters
+‣ Show the statistics using Matplotlib
+• Code quality and structure will affect the grade in a positive or negative way
 
-## Integrate with your tools
+Requirements for Grade C
+• All of the previous ones, but also:
+‣ Additional statistics, at least one of “word”, “sentence” and “character”
+‣ Visualise these using Matplotlib
+‣ Have the possibility to export the statistics
+• The file format for the export is up to you, but it should be easy for a human to read
+‣ It can be a simple textfile or something like JSON or XML
 
-- [ ] [Set up project integrations](http://librarian.teaq/production/1dv501-final/-/settings/integrations)
+Requirements for Grade B
+• All of the previous ones, but also:
+‣ Error handling for all input
+‣ All of the different statistics
+‣ Visualisation for all the statistics
+‣ All of the statistics exported in the summary
 
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Requirements for Grade A
+• Of course, all of the above, but also:
+*Something that will amaze us 😂*
+• This could be additional functionality like:
+‣ Readability scores (Flesch or Lix)
+‣ Comparative analysis between text files
+‣ N-gram analysis (find common 2-word or 3-word phrases)
+• But it could also be something else, that we have not thought of at all
+‣ It must, however, be fairly simple for us to run
