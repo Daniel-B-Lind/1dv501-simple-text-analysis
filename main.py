@@ -17,6 +17,7 @@ In the future, the TUI helpers may be moved to another file.
 # Imports
 import os.path   # ...to verify existence of dependency files
 import hy_tracked_textfiles as hy   # ...contains classes to track data on files
+import hy_fetch_json as result_handler   # ...contains functions to serialize/deserialize data
 import hy_analysis as analyse
 
 def generated_stylized_content_box(header_text: str, padding: int = 2):
@@ -299,7 +300,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
         # - Analysis Queries - 
         case 'b':
             textfiles = prepare_to_request_result(master_file_inventory)
-            print(fetch_basic_statistics(textfiles))
+            print(result_handler.fetch_basic_statistics(textfiles))
             return
 
         case _:

@@ -12,7 +12,9 @@ to be displaced to the user inline on Jupyter.
 
 """
 
+# Imports
 import json
+import hy_tracked_textfiles as hy
 
 def fetch_basic_statistics(files: hy.HyTextFile):
     """
@@ -53,6 +55,10 @@ def fetch_basic_statistics(files: hy.HyTextFile):
     # since we might now be accounting for multi-HyTextFile averages rather than single files,
     # let's re-calculate an average over the 'total' sums we have in result as of right now.
     # Don't fret - the individual averages will still be useful when doing comparisons!
+    total_words = result['total_number_of_words']
+    total_lines = result['total_number_of_lines']
+    total_chars_no_space = result['total_number_of_characters']
+
     result['total_average_words_per_line'] = (
         total_words / total_lines
         if total_lines else 0 
@@ -61,3 +67,6 @@ def fetch_basic_statistics(files: hy.HyTextFile):
         total_chars_no_space / total_words
         if total_words else 0
     )
+
+    # Return a JSON dump of the dictionary, effectively serializing it.
+    return json.dumps(result)
