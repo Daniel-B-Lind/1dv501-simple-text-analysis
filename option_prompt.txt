@@ -3,13 +3,18 @@
 # Whitespace included.
 
 -= Meta =-
+[D]isplay text files in the current directory
 [L]oad a new text file
 [U]nload a text file
-[E]xport full analysis results
+[E]xport simple analysis results for all files
 [Q]uit program
 
--= Perform Analysis =-
-[B]asic Statistics (NYI)
+-= Perform Simple Analysis =-
+[B]asic Statistics
 [W]ord Frequency Analysis
 [S]entence Analysis
 [C]haracter Analysis
+
+-= Perform Comparative Analysis =-
+[1] Basic Statistics of 2 files
+[2] Word Frequency Comparison

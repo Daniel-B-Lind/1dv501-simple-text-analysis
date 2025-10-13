@@ -13,23 +13,6 @@ and store analysis data.
 # Imports
 import os
 
-class HyFileInventory:
-    """
-    Class to hold HyTextFile objects.
-    Our quintessential tracker for files.
-    """
-
-    def __init__(self):
-        # Initialize as empty
-        self.files = []
-
-    def add_file(self, filepath):
-        # Instantiate a HyTextFile, which requires the filepath argument,
-        # then add it to the list.
-        entry = HyTextFile(filepath)
-        self.files.append(entry)
-        return entry
-
 class HyTextFile:
     """
     This class represents the attributes of a text file undergoing
@@ -78,3 +61,20 @@ class HyTextFile:
         
         self.number_of_characters_and_spaces = self.number_of_characters + self.number_of_spaces
 
+
+class HyFileInventory:
+    """
+    Class to hold HyTextFile objects.
+    Our quintessential tracker for files.
+    """
+
+    def __init__(self):
+        # Initialize as empty
+        self.files = []
+
+    def add_file(self, filepath) -> HyTextFile:
+        # Instantiate a HyTextFile, which requires the filepath argument,
+        # then add it to the list.
+        entry = HyTextFile(filepath)
+        self.files.append(entry)
+        return entry

@@ -12,9 +12,9 @@ This file defines the functions which perform the text analysis itself.
 # Imports
 import hy_tracked_textfiles as hy
 
-def calculate_basic_statistics(file: hy.HyTextFile):
+def calculate_basic_statistics(file: hy.HyTextFile) -> tuple:
     """
-    Calculates basic statistics given a file path.
+    Calculates basic statistics given a file object.
 
     Arguments:
         file: HyTextFile entry of a tracked file
@@ -37,26 +37,32 @@ def calculate_basic_statistics(file: hy.HyTextFile):
     file_number_of_spaces = 0
 
     # Read file line by line (*not* all at once in memory :D)
-    with open(path, 'r', encoding='utf-8') as f:
+    # Note: errors='replace' will replace faulty unicode characters with a fallback character.
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
         for line in f:
-            # Remove trailing newline but keep internal spaces
-            line = line.rstrip('\n')
+            try:
+                # Remove trailing newline but keep internal spaces
+                line = line.rstrip('\n')
 
-            file_number_of_lines += 1
+                file_number_of_lines += 1
 
-            # Split into words (for simplicity let's just assume a space delimits each word)
-            words = line.split(' ')
-            line_number_of_words = len(words)
+                # Split into words (for simplicity let's just assume a space delimits each word)
+                words = line.split(' ')
+                line_number_of_words = len(words)
 
-            # Since we split on spaces, we can calculate how many spaces there were via:
-            file_number_of_spaces += (len(words) - 1)
+                # Since we split on spaces, we can calculate how many spaces there were via:
+                file_number_of_spaces += (len(words) - 1)
 
-            # Count characters in all words (excluding spaces)
-            line_number_of_characters = sum(len(word) for word in words)
+                # Count characters in all words (excluding spaces)
+                line_number_of_characters = sum(len(word) for word in words)
 
-            # Apply local variables for this line to the file scope
-            file_number_of_words += line_number_of_words
-            file_number_of_characters += line_number_of_characters
+                # Apply local variables for this line to the file scope
+                file_number_of_words += line_number_of_words
+                file_number_of_characters += line_number_of_characters
+            except Exception as e:
+                # Very unlikely for an exception to occur here.
+                # If one does, it's probably safer to just pass it up the chain than to continue iterating.
+                raise e
 
     # Compute averages
     average_words_per_line = file_number_of_words / file_number_of_lines if file_number_of_lines != 0 else 0
@@ -71,3 +77,18 @@ def calculate_basic_statistics(file: hy.HyTextFile):
         average_words_per_line,
         average_characters_per_word,
     )
+
+def perform_word_analysis(file: hy.HyTextFile) -> tuple:
+    """
+    Given a file object, this function will find out the:
+        - the top 10 most common words
+        - the distribution of letters
+        - unique words
+        - words appearing only once
+    
+    Arguments:
+        file: HyTextFile object
+    
+    Returns:
+        Tuple of the 4 traits listed above.
+    """

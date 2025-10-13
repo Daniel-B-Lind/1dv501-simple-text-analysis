@@ -15,12 +15,23 @@ In the future, the TUI helpers may be moved to another file.
 """
 
 # Imports
+from sys import exit # ...to gracefully exit
 import os.path   # ...to verify existence of dependency files
 import hy_tracked_textfiles as hy   # ...contains classes to track data on files
 import hy_fetch_json as result_handler   # ...contains functions to serialize/deserialize data
 import hy_analysis as analyse
 
-def generated_stylized_content_box(header_text: str, padding: int = 2):
+# Custom exception
+class OperationCancelled(Exception):
+    """
+    Raised when a user explicitly chooses to abort or cancel an operation 
+    mid-execution.
+    """
+    def __init__(self, message="Operation was cancelled by the user."):
+        self.message = message
+        super().__init__(self.message)
+
+def generated_stylized_content_box(header_text: str, padding: int = 2) -> str:
     """
     Generates a unicode header for the menu prompt.
     Notice: if header_text exceeds screen width, this may cause graphical issues.
@@ -29,7 +40,8 @@ def generated_stylized_content_box(header_text: str, padding: int = 2):
         header_text: Contents of header.
         padding: Amount of whitespace on either side of the header_text.
 
-    Returns multiline string of the header, suitable to be passed into print() immediately.
+    Returns:
+        multiline string of the header, suitable to be passed into print() immediately.
     """
     # This may have trouble displaying on Jupyter.
     # For now, I am testing this in VSCode.
@@ -58,7 +70,7 @@ def generated_stylized_content_box(header_text: str, padding: int = 2):
 
     return header
 
-def get_loaded_files(inventory: hy.HyFileInventory):
+def get_loaded_file_names(inventory: hy.HyFileInventory) -> tuple[str]:
     """
     Returns the names of files which are currently selected in a tuple.
     Returns None if no file selected.
@@ -83,11 +95,11 @@ def print_menu_prompt(options_menu_content: str, inventory: hy.HyFileInventory):
     print(options_menu_content_box)
 
     # Print status (i.e. what files are loaded)
-    current_selected = get_loaded_files(inventory)
+    current_selected = get_loaded_file_names(inventory)
     status = "No file is selected. Choose one by selecting <L>." if current_selected == None else f"Currently working with:\n{", ".join(current_selected)}"
     print(status)
 
-def normalize_user_input(userstr: str):
+def normalize_user_input(userstr: str) -> str:
     """
     Helper function.
     When passed a user input from the main menu loop,
@@ -106,7 +118,7 @@ def normalize_user_input(userstr: str):
     # First character of user string
     return lowercase_string[0]
 
-def get_prompt_file_contents(template_path: str):
+def get_prompt_file_contents(template_path: str) -> str:
     """
     Reads a prompt/template file from disk and returns its contents,
     stripping out comments. Raises error if file does not exist
@@ -164,86 +176,51 @@ def interactive_load_file_prompt(inventory: hy.HyFileInventory):
     print("Ooops, no further functionality exists yet. Pretend I did it!")
     return
 
-def interactive_unload_file_prompt(inventory):
+def interactive_unload_file_prompt(inventory: hy.HyFileInventory):
     # If there aren't any files which are tracked, then there's nothing to unload.
     if(len(inventory.files) < 1):
         print("There aren't any loaded files to unload.")
         return
     
-    print("==========================")
-    print("A. Abort without unloading")
-
-    # List every tracked file and ask them which one to remove.
-    number_of_files = len(inventory.files)
-    for i in range(number_of_files):
-        print(f"{i}. {inventory.files[i].shortname}")
+    file = select_file_prompt(inventory)
     
-    print("==========================")
-    user_choice = -1
-    # Loop until the user provides a valid choice which is inbounds
-    while(user_choice < 0 or user_choice >= number_of_files):
-        user_input = input("Enter index of file to remove >")
-
-        # Special case - if the user aborts (via A), return early and do not pop.
-        if(user_input.lower() == 'a'):
-            return
-        
-        # Otherwise, make sure it's in range (keep looping if it isn't)
-        try:
-            user_choice = int(user_input)
-            if(user_choice >= number_of_files or user_choice < 0):
-                raise ValueError
-        except:
-            print("You must select an index corresponding to a loaded file.")
+    # If the operation was canceled, return early.
+    if file == None:
+        return
 
     # Remove from inventory
     try:
-        inventory.files.pop(user_choice)
+        inventory.files.remove(file)
     except:
         print("An unexpected error occurred while attempting to unload that file.")
         return
     
     print(f"Successfully unloaded file!")
 
-def prepare_to_request_result(inventory: hy.HyFileInventory):
+def select_file_prompt(inventory: hy.HyFileInventory) -> hy.HyTextFile:
     """
-    Prompts the user if they want to query the analysis results of a single file,
-    or all loaded files combined.
+    A generic function called from any other function which needs the user
+    to select one of the currently loaded files via an interactive prompt.
 
-    Returns a list of files to display the results of.
-    If only one file is loaded, automatically returns it.
-    If no files are loaded, returns None.
+    Returns:
+        HyTextFile object.
     """
-
-    if(len(inventory.files) == 0):
-        # There's nothing to return the results of..
-        return None
-    elif(len(inventory.files) == 1):
-        # If there's only a single loaded file, we don't want to bother the user since
-        # they only have one choice anyway.
-        return inventory.files[0]
-    # Alright, if we're here, we do actually have to prompt the user.
     print("==========================")
     print("C. Cancel Operation")
-    print("A. All Files")
 
     # List every tracked file and ask them which one to remove.
     number_of_files = len(inventory.files)
     for i in range(number_of_files):
         print(f"{i}. {inventory.files[i].shortname}")
-    
     print("==========================")
     user_choice = -1
     # Loop until the user provides a valid choice which is inbounds
     while(user_choice < 0 or user_choice >= number_of_files):
-        user_input = input("Enter index of file to remove >")
+        user_input = input("Enter index of file to choose >")
 
         # Special case - if the user aborts, return None early.
         if(user_input.lower() == 'c'):
             return None
-        # Special case 2 - return all elements
-        if(user_input.lower() == 'a'):
-            return inventory.files
         
         # Otherwise, make sure it's in range (keep looping if it isn't)
         try:
@@ -254,6 +231,36 @@ def prepare_to_request_result(inventory: hy.HyFileInventory):
             print("You must select an index corresponding to a loaded file.")
     return inventory.files[user_choice]
 
+def prepare_to_request_result(inventory: hy.HyFileInventory) -> list[hy.HyTextFile]:
+    """
+    Query the user on which file they want the results of. If only one file is available,
+    automatically chooses it.
+
+    If no files are loaded, returns None.
+    """
+
+    if(len(inventory.files) == 0):
+        # There's nothing to return the results of...
+        raise ValueError("Inventory contains no HyTextFile objects!")
+    elif(len(inventory.files) == 1):
+        # If there's only a single loaded file, we don't want to bother the user since
+        # they only have one choice anyway.
+        return inventory.files[0]
+
+    # Alright, if we're here, we do actually have to prompt the user.
+    return select_file_prompt(inventory)
+
+def list_text_files() -> str:
+    """
+    Lists the files in the current working directory and returns a string
+    of all files ending in .txt, separated by newline
+    """
+    file_list = os.listdir('.')
+    file_list_clean = ''
+    for file in file_list:
+        if file.endswith('.txt'):
+            file_list_clean += (file + '\n')
+    return file_list_clean.strip()
 
 def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
     """
@@ -264,6 +271,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
 
         user_choice: single character indicating the action selected in the main menu loop.
         Possibly Values:
+            d = display files in dir
             l = load file
             u = unload file
             e = export
@@ -280,31 +288,47 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
     match(user_choice):
         
         # - Meta -
-        
-        case 'l':
+        case 'd': # Display files in current directory
+            text_files = list_text_files()
+            print(text_files)
+            return
+
+        case 'l': # Load file
             interactive_load_file_prompt(master_file_inventory)
             return
 
-        case 'u':
+        case 'u': #Unload file
             interactive_unload_file_prompt(master_file_inventory)    
             return
 
-        case 'e':
+        case 'e': # Export results
             print("Not yet implemented!")
             return
 
-        case 'q':
+        case 'q': # Quit
             # Handled directly in menu_loop. Simply return.
+            print("Goodbye!")
             return
 
-        # - Analysis Queries - 
-        case 'b':
-            textfiles = prepare_to_request_result(master_file_inventory)
-            print(result_handler.fetch_basic_statistics(textfiles))
+        # - Simple Analysis Queries - 
+        case 'b': # Basic statistics
+            try:
+                textfiles = prepare_to_request_result(master_file_inventory)
+            except OperationCancelled:
+                print("Cancelled.")
+                return
+            except ValueError:
+                print("Load a file first.")
+                return
+
+            json_result = result_handler.fetch_basic_statistics(textfiles)
+            pretty_result = result_handler.json_to_pretty(json_result)
+            
+            print(pretty_result)
             return
 
         case _:
-            print('Invalid selection.')
+            print('Invalid selection or option not yet implemented.')
             return
 
 def menu_loop(main_inventory: hy.HyFileInventory):
@@ -320,21 +344,25 @@ def menu_loop(main_inventory: hy.HyFileInventory):
     
     # Quit if the user decides to abort program loop.
     while(user_choice != 'q'):
-        print_menu_prompt(options_menu_content, main_inventory)
+        try:
+            print_menu_prompt(options_menu_content, main_inventory)
 
-        # Prompt user for selection until it's not blank.
-        user_input = None
-        while(user_input == None):
-            user_input = normalize_user_input(input('>'))
-        
-        # Prepare "user_choice"
-        user_choice = user_input
+            # Prompt user for selection until it's not blank.
+            user_input = None
+            while(user_input == None):
+                user_input = normalize_user_input(input('>'))
+            
+            # Prepare "user_choice"
+            user_choice = user_input
 
-        # Perform user's decided action 
-        execute(main_inventory, user_choice)
+            # Perform user's decided action 
+            execute(main_inventory, user_choice)
 
-        # Hold for user input.
-        _ = input("Press enter to continue...")
+            # Hold for user input.
+            _ = input("Press enter to continue...")
+        except KeyboardInterrupt:
+            print('\nCtrl+C detected, exiting...\n')
+            exit()
 
 def main():
     """
