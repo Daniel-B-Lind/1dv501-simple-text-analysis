@@ -7,3 +7,21 @@ as you need to state that your solution has benefits over the obivious ones (lik
         - Word of god, Tobias Andersson Gidlund.
 
 For the project, make it very clear why certain tradeoffs were made like the exclusion of sets.
+
+> On the subject of flow
+currently the project is a mess, we need to create a very tangible distinction between functions/methods that:
+    1. return readable human text
+    2. print readable human text
+    3. return json data
+    4. return dicts
+    5. return tuples
+
+we need to figure out - *what* needs to be exported, *what* needs to be shown to the user, and how can we have the underlying data be the same?
+ideally i'd want the following:
+
+hy_analysis.py populates hy_tracked_textfiles HyTextFile objects with statistics (dicts, tuples, etc)
+hy_tracked_textfiles can be queried with, for instance, .get_top_words() and get python types back. this is fine.
+hy_fetch_json will query hy_tracked_textfiles to get data which is serialized into JSON. This serialized JSON terminates the chain - this is what will be exported.
+alternatively, hy_prettify can query hy_tracked_textfiles, also gets data, but this is turned into a human-friendly format, and returned. Main.py calls hy_prettify and prints the results.
+
+NO VIOLATIONS. currently, basic statistics is first turned into JSON and then back into human readable format? gross, unfuck.

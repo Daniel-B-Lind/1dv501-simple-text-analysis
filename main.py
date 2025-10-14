@@ -134,8 +134,7 @@ def get_prompt_file_contents(template_path: str) -> str:
     # If the user deleted it, y'know, break.
     # TODO: 'Real' error handling.
     if not os.path.isfile(template_path):
-        print (f" *** {template_path} is missing, aborting! *** ")
-        raise FileNotFoundError
+        raise FileNotFoundError(f" *** {template_path} is missing, aborting! *** ")
     
     # Since we can reasonable expect the prompt file to be small,
     # we can safely read it into memory.
@@ -367,6 +366,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
         
         case 'w': # Word frequency statistics
             print_word_frequency_list(selected_file)
+            print(selected_file.get_word_length_statistics())
 
         case _:
             print('Invalid selection or option not yet implemented.')

@@ -12,6 +12,7 @@ and store analysis data.
 
 # Imports
 import os
+import numpy as np
 
 class HyTextFile:
     """
@@ -139,6 +140,41 @@ class HyTextFile:
         # Dictionary is already sorted, so we simply taken N off the top
         most_common_words = dict(list(words.items())[:top_n])
         return most_common_words
+
+    def get_word_length_statistics(self) -> tuple:
+        """
+        Get some basic statistics about word length.
+
+        Arguments:
+            None
+        
+        Returns:
+            Tuple containing:
+                Length of shortest word (int)
+                Length of longest word (int)
+                Average word length (float)
+        """
+        
+        # keys: lengths, values: occurrences
+        word_length_dictionary = self.word_length_occurrences
+        # This is also already expected to be sorted (by occurrences; we've shot ourselves in the foot..)
+
+        # Since we only care about the keys, let's get a list of keys and sort it.
+        word_lengths = list(word_length_dictionary.keys())
+        sorted_word_lengths = sorted(word_lengths)
+
+        # Now, let's get the weighted average.
+        occurrences = list(word_length_dictionary.values())
+
+        # https://stackoverflow.com/questions/72700130/calculating-weighted-average-using-two-different-list-of-lists
+        average = np.average(word_lengths, weights=occurrences)
+        
+        return (
+            int(sorted_word_lengths[0]),
+            int(sorted_word_lengths[len(sorted_word_lengths)-1]),
+            average
+        )
+
 
 
 
