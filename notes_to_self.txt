@@ -24,4 +24,10 @@ hy_tracked_textfiles can be queried with, for instance, .get_top_words() and get
 hy_fetch_json will query hy_tracked_textfiles to get data which is serialized into JSON. This serialized JSON terminates the chain - this is what will be exported.
 alternatively, hy_prettify can query hy_tracked_textfiles, also gets data, but this is turned into a human-friendly format, and returned. Main.py calls hy_prettify and prints the results.
 
-NO VIOLATIONS. currently, basic statistics is first turned into JSON and then back into human readable format? gross, unfuck.
+NO VIOLATIONS... okay kinda whatever.
+
+> On the subject of "Something that will amaze us"
+How about trigram analysis for language identification? 
+Maintain a store of known trigrams for english, swedish, german, and hungarian, then find each trigram in the selected file and find
+whichever store it matches closest. Extensible for more languages, kind of cool. This alongside the ability to compare statistics of several loaded
+files should hopefully qualify for the program extensions for A grade.
