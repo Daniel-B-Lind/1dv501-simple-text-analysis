@@ -6,28 +6,28 @@ hy_tables.py
 Author: Daniel Lind
 
 Originally created to generate a table of dinosaur data for realExercise1.ipynb,
-now retrofitted to create generate Generic Text-Based Tables.
+now retrofitted to create generate Generic Text-Based Tables. 
 
 """
-class ColumnObj:
+class Column:
     """
     Represents a single column definition in a table.
     """
-    def __init__(self, columnName: str, align: str = "<"):
-        self.columnName = columnName
+    def __init__(self, column_name: str, align: str = "<"):
+        self.column_name = column_name
         self.align = align  # < = left, ^ = center, > = right
-        self.columnMinWidth = len(columnName)
+        self.column_min_width = len(column_name)
 
 
-class RowObj:
+class Row:
     """
     Represents a single table row, stored as a dict of {columnName: value}.
     """
-    def __init__(self, valuePair: dict[str, any]):
-        self.valuePair = valuePair
+    def __init__(self, value_pair: dict[str, any]):
+        self.value_pair = value_pair
 
 
-def gen_table(columns: list[ColumnObj], rows: list[RowObj]) -> str:
+def gen_table(columns: list[Column], rows: list[Row]) -> str:
     """
     Generates a formatted text table from a list of ColumnObj and RowObj.
 
@@ -39,34 +39,34 @@ def gen_table(columns: list[ColumnObj], rows: list[RowObj]) -> str:
         The complete table as a formatted string.
     """
     # Calculate minimum width of each column
-    for cObj in columns:
-        for rObj in rows:
-            considered = str(rObj.valuePair.get(cObj.columnName, ""))
+    for column in columns:
+        for row in rows:
+            considered = str(row.value_pair.get(column.column_name, ""))
             if considered:
-                cObj.columnMinWidth = max(cObj.columnMinWidth, len(considered))
+                column.column_min_width = max(column.column_min_width, len(considered))
 
     # Build header
-    header = "|" + "|".join(
-        f" {cObj.columnName:{cObj.align}{cObj.columnMinWidth}} " for cObj in columns
-    ) + "|"
+    header = "║" + "║".join(
+        f" {column.column_name:{column.align}{column.column_min_width}} " for column in columns
+    ) + "║"
 
     # Divider
-    divider = "-" * len(header)
+    divider = ("═" * len(header))
 
     # Build data rows
     body_lines = []
-    for rObj in rows:
-        row_line = "|" + "|".join(
-            f" {str(rObj.valuePair.get(cObj.columnName, '')):{cObj.align}{cObj.columnMinWidth}} "
-            for cObj in columns
-        ) + "|"
+    for row in rows:
+        row_line = "║" + "║".join(
+            f" {str(row.value_pair.get(column.column_name, '')):{column.align}{column.column_min_width}} "
+            for column in columns
+        ) + "║"
         body_lines.append(row_line)
 
-    table = "\n".join([header, divider, *body_lines])
+    table = "\n".join([divider, header, divider, *body_lines])
 
     return table
 
-def create_word_row(rank: int, word: str, occurrences: int, percentage: float) -> RowObj:
+def create_word_row(rank: int, word: str, occurrences: int, percentage: float) -> Row:
     """
     Creates a RowObj containing rankings for a specific entry in a word frequency table.
 
@@ -77,12 +77,11 @@ def create_word_row(rank: int, word: str, occurrences: int, percentage: float) -
         percentage: Float representation of a %
 
     Returns:
-        RowObj
-
+        Row
     """
     formatted_occurrences = f"{occurrences:,} times"
     formatted_percentage = f"({percentage:5.2f}%)"
-    return RowObj({
+    return Row({
         "Rank": rank,
         "Word": word,
         "Occurrences": formatted_occurrences,

@@ -20,7 +20,7 @@ import os.path   # ...to verify existence of dependency files
 import hy_tracked_textfiles as hy   # ...contains classes to track data on files
 import hy_fetch_json as result_handler   # ...contains functions to serialize/deserialize data
 import hy_analysis as analyse
-from hy_tables import ColumnObj, RowObj, gen_table, create_word_row # ...for TUI visualization of word frequencies
+from hy_tables import Column, Row, gen_table, create_word_row # ...for TUI visualization of word frequencies
 
 # Custom exception
 class OperationCancelled(Exception):
@@ -279,10 +279,10 @@ def print_word_frequency_list(file: hy.HyTextFile, n: int = 10):
     total_number_of_words = file.number_of_words
 
     columns = [
-        ColumnObj('Rank', '>'),
-        ColumnObj('Word', '<'),
-        ColumnObj('Occurrences', '>'),
-        ColumnObj('Percentage', '>'),
+        Column('Rank', '>'),
+        Column('Word', '<'),
+        Column('Occurrences', '>'),
+        Column('Percentage', '>'),
     ]
 
     rows = []
