@@ -1,11 +1,12 @@
+# pyright: reportPossiblyUnboundVariable=false
 """
 
-1DV501 Final Project - HyTextAnalysis
-main.py
+1DV501 Final Project - SimpleTextAnalysis
+stex_main.py
 
 Author: Daniel Lind
 
-This file is the entrypoint for the HyTextAnalysis project.
+This file is the entrypoint for the SimpleTextAnalysis project.
 It is the only file focusing on the interactive user interface,
 delegating functionality to other imports.
 
@@ -17,10 +18,10 @@ In the future, the TUI helpers may be moved to another file.
 # Imports
 from sys import exit # ...to gracefully exit
 import os.path   # ...to verify existence of dependency files
-import hy_tracked_textfiles as hy   # ...contains classes to track data on files
-import hy_fetch_json as result_handler   # ...contains functions to serialize/deserialize data
-import hy_analysis as analyse
-from hy_tables import Column, Row, gen_table, create_word_row # ...for TUI visualization of word frequencies
+import stex_filing as stex   # ...contains classes to track data on files
+import stex_json as serializer   # ...contains functions to serialize/deserialize data
+import stex_analysis as analyse
+import stex_pretty as pretty  # ...to get human-readable results
 
 # Custom exception
 class OperationCancelled(Exception):
@@ -71,7 +72,7 @@ def generate_stylized_content_box(header_text: str, padding: int = 2) -> str:
 
     return header
 
-def get_loaded_file_names(inventory: hy.HyFileInventory) -> tuple[str]:
+def get_loaded_file_names(inventory: stex.FileInventory) -> tuple[str] | None:
     """
     Returns the names of files which are currently selected in a tuple.
     Returns None if no file selected.
@@ -88,7 +89,7 @@ def get_loaded_file_names(inventory: hy.HyFileInventory) -> tuple[str]:
     return tuple(names)
     
 
-def print_menu_prompt(options_menu_content: str, inventory: hy.HyFileInventory):
+def print_menu_prompt(options_menu_content: str, inventory: stex.FileInventory):
     # TODO: base width of dividing lines on intro header?
     
     # Generate content box for the possibly options. 
@@ -100,7 +101,7 @@ def print_menu_prompt(options_menu_content: str, inventory: hy.HyFileInventory):
     status = "No file is selected. Choose one by selecting <L>." if current_selected == None else f"Currently working with:\n{", ".join(current_selected)}"
     print(status)
 
-def normalize_user_input(userstr: str) -> str:
+def normalize_user_input(userstr: str) -> str | None:
     """
     Helper function.
     When passed a user input from the main menu loop,
@@ -150,7 +151,7 @@ def get_prompt_file_contents(template_path: str) -> str:
 
     return options_menu_content
 
-def interactive_load_file_prompt(inventory: hy.HyFileInventory):
+def interactive_load_file_prompt(inventory: stex.FileInventory):
     loaded_file = None
     while(loaded_file == None):
         user_input = input("Enter path to text file:")
@@ -167,12 +168,12 @@ def interactive_load_file_prompt(inventory: hy.HyFileInventory):
     print("Successfully loaded file! Starting analysis.")
     
     print(" [1] Performing basic analysis... ", end='')
-    basic_statistics = analyse.fetch_basic_statistics(loaded_file)
+    basic_statistics = analyse.invoke_basic_statistics(loaded_file)
     loaded_file.append_basic_statistics(basic_statistics)
     print("done!")
 
     print(" [2] Performing word frequency analysis... ", end='')
-    word_statistics = analyse.fetch_word_frequency_statistics(loaded_file)
+    word_statistics = analyse.invoke_word_frequency_statistics(loaded_file)
     loaded_file.append_word_frequency_statistics(word_statistics)
     print("done!")
     
@@ -181,17 +182,16 @@ def interactive_load_file_prompt(inventory: hy.HyFileInventory):
     print("Ooops, no further functionality exists yet. Pretend I did it!")
     return
 
-def unload_file(inventory: hy.HyFileInventory, file_to_remove: hy.HyTextFile):
+def unload_file(inventory: stex.FileInventory, file_to_remove: stex.TextFile) -> str:
     # Remove from inventory
     try:
         inventory.files.remove(file_to_remove)
     except:
-        print("An unexpected error occurred while attempting to unload that file.")
-        return
+        return "An unexpected error occurred while attempting to unload that file."
     
-    print(f"Successfully unloaded file!")
+    return 'Successfully unloaded file!'
 
-def select_file_prompt(inventory: hy.HyFileInventory) -> hy.HyTextFile:
+def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
     """
     A generic function called from any other function which needs the user
     to select one of the currently loaded files via an interactive prompt.
@@ -225,7 +225,7 @@ def select_file_prompt(inventory: hy.HyFileInventory) -> hy.HyTextFile:
             print("You must select an index corresponding to a loaded file.")
     return inventory.files[user_choice]
 
-def prepare_to_request_result(inventory: hy.HyFileInventory) -> hy.HyTextFile:
+def prepare_to_request_result(inventory: stex.FileInventory) -> stex.TextFile:
     """
     Query the user on which file they want the results of. If only one file is available,
     automatically chooses it.
@@ -256,48 +256,7 @@ def list_text_files() -> str:
             file_list_clean += (file + '\n')
     return file_list_clean.strip()
 
-def print_word_frequency_list(file: hy.HyTextFile, n: int = 10):
-    """
-    Given a HyTextFile object, this will print a stylized list of the N 
-    most common words on file for that object as well as the amount of 
-    occurrences and the % of words that each entry makes up.
-
-    Arguments:
-        file: HyTextFile to consider
-        n: Top N objects to list. If this exceeds the total amount of unique words, this will be decreased.
-
-    Returns:
-        Nothing. This function will fetch and display the requested statistics to screen
-    """
-    # For starters, we'll want to actually fetch these statistics to construct a
-    # stylized list. This functionality is handled in the HyTextFile class.
-    # The returned dictionary contains the word as a key and the amount of occurrences as a value.
-    common_words_dictionary = file.get_top_words(n)
-
-    # To calculate relative percentages, we'll also need to know the amount of words in general.
-    total_number_of_words = file.number_of_words
-
-    columns = [
-        Column('Rank', '>'),
-        Column('Word', '<'),
-        Column('Occurrences', '>'),
-        Column('Percentage', '>'),
-    ]
-
-    rows = []
-    
-    for rank, (word, count) in enumerate(common_words_dictionary.items(), start=1):
-        percentage = (count / total_number_of_words) * 100
-        rows.append(create_word_row(rank, word, count, percentage))
-
-    # Generate the table
-    table = gen_table(columns, rows)
-    
-    # Print it
-    print(table)
-
-
-def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
+def execute(master_file_inventory: stex.FileInventory, user_choice: str):
     """
     Primary function to execute user's desired effects.
 
@@ -319,7 +278,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
 
     Does not return a value - delegates action and prints to screen.
     """
-
+    
     # If the operation we're planning to do requires a file, select one.
     CHOICES_REQUIRING_LOADED_FILE = 'uebwsc'
     if(user_choice in CHOICES_REQUIRING_LOADED_FILE):
@@ -344,7 +303,8 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
             return
 
         case 'u': #Unload file
-            unload_file(master_file_inventory, selected_file)
+            result = unload_file(master_file_inventory, selected_file)
+            print(result)
             return
 
         case 'e': # Export results
@@ -358,21 +318,29 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
 
         # - Simple Analysis Queries - 
         case 'b': # Basic statistics
-            json_result = result_handler.serialize_basic_statistics(selected_file)
-            pretty_result = result_handler.json_to_pretty(json_result)
-            print(pretty_result)
-
+            result = pretty.fetch_basic_statistics(selected_file)
+            print(result)
             return
         
         case 'w': # Word frequency statistics
-            print_word_frequency_list(selected_file)
-            print(selected_file.get_word_length_statistics())
+            frequency_table = pretty.fetch_word_frequency_list(selected_file)
+            print(frequency_table)
+            
+            length_stats = pretty.fetch_word_length_statistics(selected_file)
+            print(length_stats)
+            
+            orphan_word_count = len(selected_file.get_orphan_words())
+            print(f'Words appearing only once: {pretty.format_number(orphan_word_count)}')
+            return
+        
+        case 's': # Sentence analysis
+            print(analyse.invoke_sentence_statistics(selected_file))
 
         case _:
             print('Invalid selection or option not yet implemented.')
             return
 
-def menu_loop(main_inventory: hy.HyFileInventory):
+def menu_loop(main_inventory: stex.FileInventory):
     """
     Main program loop. Handles the general flow of prompting the user and performing actions.
     """
@@ -400,7 +368,7 @@ def menu_loop(main_inventory: hy.HyFileInventory):
             execute(main_inventory, user_choice)
 
             # Hold for user input.
-            _ = input("Press enter to continue...")
+            _ = input("\nPress enter to continue...")
         except KeyboardInterrupt:
             print('\nCtrl+C detected, exiting...\n')
             exit()
@@ -415,7 +383,7 @@ def main():
     print(intro_header)
 
     # Instantiate the main inventory of text files
-    main_inventory = hy.HyFileInventory()
+    main_inventory = stex.FileInventory()
 
     # Transfer executon to main menu loop. Will return here (and exit) when the user quits.
     menu_loop(main_inventory)

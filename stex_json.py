@@ -1,11 +1,11 @@
 """
 
-1DV501 Final Project - HyTextAnalysis
-hy_fetch_json.py
+1DV501 Final Project - SimpleTextAnalysis
+stex_json.py
 
 Author: Daniel Lind
 
-This file contains functions responsible for serializing data stored in HyTextFile objects
+This file contains functions responsible for serializing data stored in TextFile objects
 to JSON, which can either be saved to disk as-is or passed through a 
 "friendly deserializer" also located in this file to translate into something fit
 to be displaced to the user inline on Jupyter.
@@ -14,51 +14,9 @@ to be displaced to the user inline on Jupyter.
 
 # Imports
 import json
-import hy_tracked_textfiles as hy
+import stex_filing as stex
 
-def json_to_pretty(json_str: str) -> str:
-    """
-    Converts a JSON serialized string to a human readable and indented
-    string.
-
-    Arguments:
-        json_str: JSON string to deserialize.
-    
-    Returns:
-        Prettied, readable, printable string.
-    """
-    # Deserialize JSON string
-    data = json.loads(json_str)
-    
-    # Build pretty string
-    result = ''
-    for key, value in data.items():
-        # Convert snake_case to Title Case
-        readable_key = key.replace('_', ' ').capitalize()
-
-        # If value is a number, format it
-        if isinstance(value, int):
-            value = format_number(value)
-
-        result += (f"{readable_key}: {value}\n")
-    
-    return result.strip()
-
-def format_number(number: int) -> str:
-    """
-    Converts an integer to a human-readable string with commas separating
-    thousands, millions, etc.
-    
-    Arguments:
-        number: integer to format.
-    
-    Returns:
-        Formatted number as a string.
-    """
-    return f"{number:,}"
-
-
-def serialize_basic_statistics(file: hy.HyTextFile) -> str:
+def serialize_basic_statistics(file: stex.TextFile) -> str:
     """
     Fetches the basic statistics of a HyTextFile.
 
@@ -83,7 +41,7 @@ def serialize_basic_statistics(file: hy.HyTextFile) -> str:
     # Return a JSON dump of the dictionary, effectively serializing it.
     return json.dumps(result)
 
-def serialize_word_frequency_statistics(file: hy.HyTextFile) -> str:
+def serialize_word_frequency_statistics(file: stex.TextFile) -> str:
     """
     Fetches the stored word frequency statistics of a HyTextFile.
 
@@ -93,8 +51,10 @@ def serialize_word_frequency_statistics(file: hy.HyTextFile) -> str:
     Returns:
         JSON formatted string of statistics
     """
-
+    raise NotImplementedError
     # Dictionary
     result = {
         
     }
+    
+    return json.dumps(result)

@@ -1,7 +1,7 @@
 """
 
-1DV501 Final Project - HyTextAnalysis
-hy_tracked_textfiles.py
+1DV501 Final Project - SimpleTextAnalysis
+stex_filing.py
 
 Author: Daniel Lind
 
@@ -14,13 +14,13 @@ and store analysis data.
 import os
 import numpy as np
 
-class HyTextFile:
+class TextFile:
     """
     This class represents the attributes of a text file undergoing
     analysis. It holds analysis results, filepath, et cetera.
     """
     
-    def __init__(self, filepath):
+    def __init__(self, filepath: str) -> None:
         if(not os.path.exists(filepath)):
             raise FileNotFoundError
         if(not filepath.lower().endswith('.txt')):
@@ -29,7 +29,7 @@ class HyTextFile:
         self.path = filepath
         self.shortname = os.path.basename(self.path)
 
-    def append_basic_statistics(self, stats: tuple):
+    def append_basic_statistics(self, stats: tuple) -> None:
         """
         Stores basic statistics in HyTextFile instance.
 
@@ -44,7 +44,7 @@ class HyTextFile:
             None
         """
 
-        # Sanity check - does our tuple have 4 elements as expected?
+        # Sanity check - does our tuple have 4 elements as expected? TODO: is this even remotely sane
         if(len(stats) != 4):
             raise ValueError("Malformed basic statistics tuple received - does not contain 4 elements")
         
@@ -58,7 +58,7 @@ class HyTextFile:
         
         self.number_of_characters_and_spaces = self.number_of_characters + self.number_of_spaces
     
-    def append_word_frequency_statistics(self, stats: tuple):
+    def append_word_frequency_statistics(self, stats: tuple) -> None:
         """
         Stores the results of a corresponding Word Frequency Analysis in HyTextFile instance.
 
@@ -72,6 +72,16 @@ class HyTextFile:
         (
             self.word_occurrences,
             self.word_length_occurrences
+        ) = stats
+        
+    def append_sentence_statistics(self, stats: tuple[str, str, dict[int, int]]) -> None:
+        """
+                    
+        """
+        (
+            self.shortest_sentence_text,
+            self.longest_sentence_text,
+            self.sentence_length_distribution
         ) = stats
 
     def get_average_words_per_line(self, round_to: int = 3) -> float:
@@ -141,7 +151,7 @@ class HyTextFile:
         most_common_words = dict(list(words.items())[:top_n])
         return most_common_words
 
-    def get_word_length_statistics(self) -> tuple:
+    def get_word_length_statistics(self) -> tuple[int, int, float]:
         """
         Get some basic statistics about word length.
 
@@ -167,18 +177,16 @@ class HyTextFile:
         occurrences = list(word_length_dictionary.values())
 
         # https://stackoverflow.com/questions/72700130/calculating-weighted-average-using-two-different-list-of-lists
-        average = np.average(word_lengths, weights=occurrences)
+        average = float(np.average(word_lengths, weights=occurrences))
         
         return (
             int(sorted_word_lengths[0]),
-            int(sorted_word_lengths[len(sorted_word_lengths)-1]),
+            int(sorted_word_lengths[-1]),
             average
         )
 
 
-
-
-class HyFileInventory:
+class FileInventory:
     """
     Class to hold HyTextFile objects.
     Our quintessential tracker for files.
@@ -188,9 +196,9 @@ class HyFileInventory:
         # Initialize as empty
         self.files = []
 
-    def add_file(self, filepath) -> HyTextFile:
+    def add_file(self, filepath) -> TextFile:
         # Instantiate a HyTextFile, which requires the filepath argument,
         # then add it to the list.
-        entry = HyTextFile(filepath)
+        entry = TextFile(filepath)
         self.files.append(entry)
         return entry
