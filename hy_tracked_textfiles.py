@@ -114,26 +114,12 @@ class HyTextFile:
         Returns a tuple of every word which appears in the HyTextFile, with no duplicates,
         ordered by amount of appearances.
         """
-        unique_words = set(self.word_occurrences.keys())
-        return tuple(sorted(unique_words, key=lambda w: self.word_occurrences[w], reverse=True))
-        # The project requirements state to use a set, which is why I use one above.
-        # Though, as you can see, it doesn't make much sense. This data already 
-        # exists as the keys of our dictionary - there is no need to keep a redundant set
-        # of each unique word. 
-        #
-        # But to be on the safe side with project requirements, the mess above *technically*
-        # uses them... albeit by casting the keys to a set and then immediately casting the set
-        # to a tuple. What's more is that we want to keep it sorted, which sets... don't support.
-        #
-        # This is the code I *would* use if we didn't have the constraint of sets.
-        """
         unique_words = []
         for word in self.word_occurrences.keys():
             unique_words.append(word)
         
         return tuple(unique_words)
-        """
-        # Cheers.
+
     
     def get_top_words(self, top_n: int) -> dict:
         """
