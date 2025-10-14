@@ -20,6 +20,7 @@ import os.path   # ...to verify existence of dependency files
 import hy_tracked_textfiles as hy   # ...contains classes to track data on files
 import hy_fetch_json as result_handler   # ...contains functions to serialize/deserialize data
 import hy_analysis as analyse
+from hy_tables import ColumnObj, RowObj, gen_table, create_word_row # ...for TUI visualization of word frequencies
 
 # Custom exception
 class OperationCancelled(Exception):
@@ -212,9 +213,9 @@ def select_file_prompt(inventory: hy.HyFileInventory) -> hy.HyTextFile:
     while(user_choice < 0 or user_choice >= number_of_files):
         user_input = input("Enter index of file to choose >")
 
-        # Special case - if the user aborts, return None early.
+        # Special case - if the user aborts... abort.
         if(user_input.lower() == 'c'):
-            return None
+            raise OperationCancelled
         
         # Otherwise, make sure it's in range (keep looping if it isn't)
         try:
@@ -256,8 +257,46 @@ def list_text_files() -> str:
             file_list_clean += (file + '\n')
     return file_list_clean.strip()
 
-def print_word_frequency_list():
-    raise NotImplementedError
+def print_word_frequency_list(file: hy.HyTextFile, n: int = 10):
+    """
+    Given a HyTextFile object, this will print a stylized list of the N 
+    most common words on file for that object as well as the amount of 
+    occurrences and the % of words that each entry makes up.
+
+    Arguments:
+        file: HyTextFile to consider
+        n: Top N objects to list. If this exceeds the total amount of unique words, this will be decreased.
+
+    Returns:
+        Nothing. This function will fetch and display the requested statistics to screen
+    """
+    # For starters, we'll want to actually fetch these statistics to construct a
+    # stylized list. This functionality is handled in the HyTextFile class.
+    # The returned dictionary contains the word as a key and the amount of occurrences as a value.
+    common_words_dictionary = file.get_top_words(n)
+
+    # To calculate relative percentages, we'll also need to know the amount of words in general.
+    total_number_of_words = file.number_of_words
+
+    columns = [
+        ColumnObj('Rank', '>'),
+        ColumnObj('Word', '<'),
+        ColumnObj('Occurrences', '>'),
+        ColumnObj('Percentage', '>'),
+    ]
+
+    rows = []
+    
+    for rank, (word, count) in enumerate(common_words_dictionary.items(), start=1):
+        percentage = (count / total_number_of_words) * 100
+        rows.append(create_word_row(rank, word, count, percentage))
+
+    # Generate the table
+    table = gen_table(columns, rows)
+    
+    # Print it
+    print(table)
+
 
 def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
     """
@@ -327,7 +366,7 @@ def execute(master_file_inventory: hy.HyFileInventory, user_choice: chr):
             return
         
         case 'w': # Word frequency statistics
-            print_word_frequency_list()
+            print_word_frequency_list(selected_file)
 
         case _:
             print('Invalid selection or option not yet implemented.')

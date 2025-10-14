@@ -1,0 +1,9 @@
+
+> On the subject of shenanigans
+"Motivating your decisions is key here, 
+if you can motivate it, then it is fine. 
+Remember that motivation needs to be well thought out, 
+as you need to state that your solution has benefits over the obivious ones (like sets)."
+        - Word of god, Tobias Andersson Gidlund.
+
+For the project, make it very clear why certain tradeoffs were made like the exclusion of sets.
