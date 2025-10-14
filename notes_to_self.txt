@@ -31,3 +31,16 @@ How about trigram analysis for language identification?
 Maintain a store of known trigrams for english, swedish, german, and hungarian, then find each trigram in the selected file and find
 whichever store it matches closest. Extensible for more languages, kind of cool. This alongside the ability to compare statistics of several loaded
 files should hopefully qualify for the program extensions for A grade.
+
+This would also be pretty simple to implement.
+Make a function which calculates the distribution of trigrams in a text. For optimization purposes, perhaps only word boundary trigrams.
+Run a few texts in various languages through this to get a general distribution of trigrams (2.5% THE in English, for instance).
+Store these samples under language_samples/english.json.
+
+When analyzing a new text, compute the trigram distribution using the same algorithm and map to the closest known sample. ezpz
+Sum of absolute differences or cosine similarity. Ideally cosine similarity.
+cosine = dot_product(A, B) / (norm(A) * norm(B))
+where dot_product(A, B) is the sum of A[t] * B[t] for all trigrams t.
+norm(A) is the square root of the sum of A[t]^2
+
+remember to only take the first, like, 2000 lines (or maybe 100000 characters? if it's all a single line it'll still mess up) since trigram analysis converges and we dont wanna burn CPU cycles (...i mean, don't we? we're using fucking python.) 
