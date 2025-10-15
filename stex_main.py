@@ -176,6 +176,11 @@ def interactive_load_file_prompt(inventory: stex.FileInventory):
     word_statistics = analyse.invoke_word_frequency_statistics(loaded_file)
     loaded_file.append_word_frequency_statistics(word_statistics)
     print("done!")
+
+    print(" [3] Performing sentence analysis... ", end='')
+    sentence_statistics = analyse.invoke_sentence_statistics(loaded_file)
+    loaded_file.append_sentence_statistics(sentence_statistics)
+    print("done!")
     
     # TODO: perform analysis here and save results in the file we just added
     # for now, just return
@@ -334,7 +339,11 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             return
         
         case 's': # Sentence analysis
-            print(analyse.invoke_sentence_statistics(selected_file))
+            frequency_table = pretty.fetch_sentence_length_distribution_list(selected_file)
+            print(frequency_table)
+            sentence_stats = pretty.fetch_sentence_statistics(selected_file)
+            print(sentence_stats)
+            return
 
         case _:
             print('Invalid selection or option not yet implemented.')

@@ -52,6 +52,28 @@ def fetch_word_length_statistics(file: stex.TextFile) -> str:
     result = format_dictionary(stats)
     return result
 
+def fetch_sentence_statistics(file: stex.TextFile) -> str:
+    """
+
+    """
+    sentence_count = file.total_sentences
+    average = file.get_average_words_per_sentence(2) # Rounding to 2 decimals
+    shortest_sentence = file.shortest_sentence_text
+    longest_sentence = file.longest_sentence_text
+
+    stats = {
+        'Total sentences': f'{format_number(sentence_count)}',
+        'Average words per sentence': f'{average}',
+        'Shortest sentence': f'{format_number(len(shortest_sentence))} words',
+        'Longest sentence': f'{format_number(len(longest_sentence))} words', 
+        '': '',
+        'Shortest sentence text': f'"{shortest_sentence}"',
+        'Longest sentence text': f'"{longest_sentence}"', 
+    }
+
+    result = format_dictionary(stats)
+    return result
+
 def fetch_word_frequency_list(file: stex.TextFile, top_n_words: int = 10) -> str:
     """
     Given a HyTextFile object, this will return a stylized list of the N 
@@ -68,28 +90,70 @@ def fetch_word_frequency_list(file: stex.TextFile, top_n_words: int = 10) -> str
     # For starters, we'll want to actually fetch these statistics to construct a
     # stylized list. This functionality is handled in the HyTextFile class.
     # The returned dictionary contains the word as a key and the amount of occurrences as a value.
-    common_words_dictionary = file.get_top_words(top_n_words)
+    common_words_dictionary = file.get_top_elements_of_dictionary(file.word_occurrences, top_n_words)
 
     # To calculate relative percentages, we'll also need to know the amount of words in general.
     total_number_of_words = file.number_of_words
 
     columns = [
-        Column('Rank', '>'),
+        Column('Rank', '^'),
         Column('Word', '<'),
         Column('Occurrences', '>'),
         Column('Percentage', '>'),
     ]
 
     rows = []
-    
-    for rank, (word, count) in enumerate(common_words_dictionary.items(), start=1):
+
+    # This is just for display purposes - we assign a "ranking" to
+    # each entry by enumerating. (Human readable, so index starts at 1)    
+    ranked_items = enumerate(common_words_dictionary.items(), start=1)
+
+    for rank, (word, count) in ranked_items:
+        # Calculate percentage relative to total number of all words
         percentage = (count / total_number_of_words) * 100
-        rows.append(create_word_row(rank, word, count, percentage))
+        
+        row = create_word_row(rank, word, count, percentage)
+        rows.append(row)
 
     # Generate the table
     table = gen_table(columns, rows)
     
     return table
+
+def fetch_sentence_length_distribution_list(file: stex.TextFile, top_n_sentences: int = 5) -> str:
+    """
+    Much like the word frequency list, this function will take a
+    TextFile object and generate a prettied table-like representation
+    of the N most common word/sentence distributions.
+
+    Arguments:
+        file: TextFile to consider
+        top_n_sentences: How many ranks to return.
+
+    Returns:
+        Printable string.
+    """
+    top_entries = file.get_top_elements_of_dictionary(file.sentence_length_distribution, top_n_sentences)
+
+    columns = [
+        Column('Rank', '^'),
+        Column('Amount of Words', '>'),
+        Column('Count of Sentences', '>')
+    ]
+
+    rows = []
+
+    # Assign rankings (as above)
+    ranked_items = enumerate(top_entries.items(), start=1)
+
+    for rank, (length, count) in ranked_items:
+        row = create_sentence_row(rank, length, count)
+        rows.append(row)
+
+    # Generate the table
+    table = gen_table(columns, rows)
+    return table
+
 
 
 #
@@ -214,4 +278,24 @@ def create_word_row(rank: int, word: str, occurrences: int, percentage: float) -
         "Word": word,
         "Occurrences": formatted_occurrences,
         "Percentage": formatted_percentage
+    })
+
+def create_sentence_row(rank: int, length: int, occurrences: int) -> Row:
+    """
+    Creates a RowObj containing rankings for a specific entry the
+    sentence length distribution table.
+
+    Arguments:
+        rank: Integer of which rank this length sits at.
+        length: The sentence length, in words.
+        occurrences: The amount of sentences of that length.
+
+    Returns:
+        Row
+    """
+    formatted_occurrences = f"{occurrences:,} times"
+    return Row({
+        "Rank": rank,
+        "Amount of Words": length,
+        "Count of Sentences": occurrences
     })

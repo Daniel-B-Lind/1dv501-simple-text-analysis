@@ -84,13 +84,21 @@ class TextFile:
             self.sentence_length_distribution
         ) = stats
 
+        self.total_sentences = sum(self.sentence_length_distribution.values())
+
+    def append_character_statistics(self, stats: dict[str, int]) -> None:
+        """
+
+        """
+        
+
     def get_average_words_per_line(self, round_to: int = 3) -> float:
         """
         Returns the average words per line, rounded to round_to decimals.
         """
         words = self.number_of_words
         lines = self.number_of_lines
-        average = words / lines
+        average = (words / lines) if (lines != 0) else 0        
         rounded = round(average, round_to)
         return rounded
 
@@ -100,10 +108,22 @@ class TextFile:
         """
         characters = self.number_of_characters
         words = self.number_of_words
-        average = characters / words
+        average = (characters / words) if (words != 0) else 0
         rounded = round(average, round_to)
         return rounded
 
+    def get_average_words_per_sentence(self, round_to: int = 3) -> float:
+        """ 
+        Returns the average number of words per sentence, rounded to round_to decimals.
+        """
+        if not self.sentence_length_distribution:
+            raise ValueError("Sentence data is not populated for this TextFile!")
+
+        total_words = sum(length * count for length, count in self.sentence_length_distribution.items())
+        total_sentences = self.total_sentences
+
+        average = total_words / total_sentences
+        return round(average, round_to)
     
     def get_orphan_words(self) -> tuple[str]:
         """
@@ -132,24 +152,27 @@ class TextFile:
         return tuple(unique_words)
 
     
-    def get_top_words(self, top_n: int) -> dict:
+    def get_top_elements_of_dictionary(self, dictionary: dict, top_n: int) -> dict[str, int]:
         """
-        Finds the N most common words.
+        Finds the N first entries in a dictionary. If the dictionary
+        is sorted, which it should be, this will be the top values of it.
         May return a lower amount if the requested number of values
         exceeds the size of the dictionary.
 
+        Args:
+            dictionary: dict to consider
+            top_n: amount of values to return
+
         Returns:
-            Dictionary containing N of the most common words.
+            Dictionary containing N of its topmost values
         """
-        words = self.word_occurrences
-
         # Is top_n too big? If so, downsize it...
-        if(top_n > len(words)):
-            top_n = len(words)
+        if(top_n > len(dictionary)):
+            top_n = len(dictionary)
 
-        # Dictionary is already sorted, so we simply taken N off the top
-        most_common_words = dict(list(words.items())[:top_n])
-        return most_common_words
+        # Assume dictionary is already sorted, so we simply taken N off the top
+        top_values = dict(list(dictionary.items())[:top_n])
+        return top_values
 
     def get_word_length_statistics(self) -> tuple[int, int, float]:
         """
@@ -184,6 +207,7 @@ class TextFile:
             int(sorted_word_lengths[-1]),
             average
         )
+        
 
 
 class FileInventory:

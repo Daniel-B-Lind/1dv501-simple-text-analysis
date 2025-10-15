@@ -169,32 +169,39 @@ def invoke_sentence_statistics(file: stex.TextFile) -> tuple[str, str, dict[int,
     
     # Define which characters denote the end of a sentence.
     # Using a set here for O(1) lookup time.
-    STOP_CHARS = {'!', '?', '.', '‽'}
+    # TODO: This is still a little fragile in case this punctuation is used
+    # but not intended to be a full stop, e.g. abbreviations (see what I did there?)
+    # This works for now but word detection could be improved.
+    STOP_CHARS = frozenset(read_resource_file('stopchars'))
     
     # This stores the current sentence we're working our way through.
-    working_sentence = ''
+    working_sentence = []
     
     # These three will be our 'finals' which are returned as a tuple.
-    shortest_sentence = ''
-    longest_sentence = ''
+    shortest_sentence = []
+    longest_sentence = []
     sentence_distribution = {}
     
     # Load file and iterate through it as before.
     with open(file.path, 'r', encoding='utf-8', errors='replace') as f:
         for line in f:
-            for word in line:
-                # Sentence is still on-going...
-                working_sentence += word
+            for word in line.split():
+                # Sentence is still ongoing. Add our word to the building list.
+                working_sentence.append(word)
                 
                 # Here, our standard procedure does as Phoenix HyperSpace does and ✨diverges greatly✨ (that's a reference you don't get)
                 for character in word:
                     if(character in STOP_CHARS and len(working_sentence) > 0):
                         # Commit working sentence to final variables.
                         finished_sentence_length = len(working_sentence)
-                        if(finished_sentence_length <= len(shortest_sentence)):
-                            shortest_sentence = working_sentence
+
+                        # TODO: Messy conditional.. updates shortest_sentence if it was empty or if our last finished sentence is shorter.
+                        # Also note that we are only considering sentence length by words, not characters.
+                        # Via this logic, "Greetings, fellow!" is just as long as "Hi Jim."
+                        if(finished_sentence_length < len(shortest_sentence) or len(shortest_sentence) == 0):
+                            shortest_sentence = working_sentence.copy()
                         if(finished_sentence_length > len(longest_sentence)):
-                            longest_sentence = working_sentence
+                            longest_sentence = working_sentence.copy()
                         
                         # Update sentence distribution dictionary
                         if finished_sentence_length in sentence_distribution:
@@ -203,10 +210,90 @@ def invoke_sentence_statistics(file: stex.TextFile) -> tuple[str, str, dict[int,
                             sentence_distribution[finished_sentence_length] = 1
                         
                         # Reset working sentence.
-                        working_sentence = ''
+                        working_sentence = []
+    
+    # Sort distribution directory by frequency of values.
+    sorted_sentence_distribution = dict(sorted(sentence_distribution.items(), key=lambda item: item[1], reverse=True))
+
+    return (
+        " ".join(shortest_sentence),
+        " ".join(longest_sentence),
+        sorted_sentence_distribution
+    )
+
+def invoke_character_statistics(file: stex.TextFile) -> tuple[dict[str, int], int, int, int, int, int]:
+    """
+    Iterates through the provided TextFile and returns a dictionary
+    containing how many times each character occurs.
+
+    Arguments:
+        file: TextFile to consider
+    
+    Returns:
+        tuple containing:
+            dictionary (key: character, value: occurrences)
+            int of letter count
+            int of digit count
+            int of punctuation count
+            int of spaces count
+            int of other count
+    """
+
+    character_occurrences = {}
+
+    LETTERS = frozenset(read_resource_file('letters'))
+    DIGITS = frozenset(read_resource_file('digits'))
+    PUNCTUATION = frozenset(read_resource_file('punctuation'))
+    # Anything not defined in these files will be counted as 'other'.
+
+    letter_count = 0
+    digit_count = 0
+    punctuation_count = 0
+    space_count = 0
+    other_count = 0
+
+    with open(file.path, 'r', encoding='utf-8', errors='replace') as f:
+        for line in f:
+            for character in line:
+                if character in LETTERS:
+                    letter_count += 1
+                elif character == ' ':
+                    space_count += 1
+                elif character in DIGITS:
+                    digit_count += 1
+                elif character in PUNCTUATION:
+                    punctuation_count += 1
+                else:
+                    other_count += 1
+
+                # Add to occurrences dictionary.
+                if character in character_occurrences:
+                    character_occurrences[character] += 1
+                else:
+                    character_occurrences[character] = 1
     
     return (
-        shortest_sentence,
-        longest_sentence,
-        sentence_distribution
+        character_occurrences,
+        letter_count,
+        digit_count,
+        punctuation_count,
+        space_count,
+        other_count
     )
+
+# Helper Functions
+def read_resource_file(name: str) -> str:
+    """
+    Reads a file from the 'resources' folder, located by name,
+    and returns its contents.
+    
+    Arguments:
+        name: The *name* (not path!) of the file, located in the accompanying /resources folder.
+    
+    Returns:
+        str
+    """
+    content = ''
+    with open(f"resources/{name}", 'r', encoding='utf-8', errors='replace') as f:
+        content = f.read()
+    return content.strip()
