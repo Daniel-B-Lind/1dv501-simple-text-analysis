@@ -12,6 +12,8 @@ intended to make that content human readable ("pretty".)
 
 """
 
+# Imports
+import string
 import stex_filing as stex
 
 def fetch_basic_statistics(file: stex.TextFile) -> str:
@@ -154,7 +156,33 @@ def fetch_sentence_length_distribution_list(file: stex.TextFile, top_n_sentences
     table = gen_table(columns, rows)
     return table
 
+def fetch_common_letters_list(file: stex.TextFile, top_n_letters: int = 10) -> str:
 
+    constraint = string.ascii_letters
+    top_letters = file.get_top_elements_of_dictionary(file.character_occurrences, 10, constraint)
+    total_letters = file.letter_count
+
+    columns = [
+        Column('Rank', '^'),
+        Column('Word', '>'),
+        Column('Occurrences', '<'),
+        Column('Percentage', '>')
+    ]
+
+    rows = []
+
+    ranked_items = enumerate(top_letters.items(), start=1)
+
+    for rank, (letter, count) in ranked_items:
+        # Calculate percentage relative to total number of other letters
+        percentage = (count / total_letters) * 100
+        
+        row = create_word_row(rank, letter, count, percentage)
+        rows.append(row)
+
+    # Generate the table
+    table = gen_table(columns, rows)
+    return table
 
 #
 # Helper functions below.

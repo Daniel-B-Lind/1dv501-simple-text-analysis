@@ -86,11 +86,31 @@ class TextFile:
 
         self.total_sentences = sum(self.sentence_length_distribution.values())
 
-    def append_character_statistics(self, stats: dict[str, int]) -> None:
+    def append_character_statistics(self, stats: tuple[dict[str, int], int, int, int, int, int]) -> None:
         """
+        Stores the results of a corresponding Character Analysis.
 
+        Arguments:
+            stats: tuple containing:
+                dictionary containing:
+                    character occurrences (key: character(str), value: occurrences(int))
+                amount of letters (int)
+                amount of digits (int)
+                amount of punctuation (int)
+                amount of spaces (int)
+                amount of other characters (int)
         """
-        
+        (
+            self.character_occurrences,
+            self.letter_count,
+            self.digit_count,
+            self.punctuation_count,
+            self.space_count,
+            self.other_count
+        ) = stats
+
+        self.total_characters = sum(self.character_occurrences.values())
+
 
     def get_average_words_per_line(self, round_to: int = 3) -> float:
         """
@@ -152,7 +172,7 @@ class TextFile:
         return tuple(unique_words)
 
     
-    def get_top_elements_of_dictionary(self, dictionary: dict, top_n: int) -> dict[str, int]:
+    def get_top_elements_of_dictionary(self, dictionary: dict, top_n: int, constraint: set = {}) -> dict[str, int]:
         """
         Finds the N first entries in a dictionary. If the dictionary
         is sorted, which it should be, this will be the top values of it.
@@ -170,8 +190,17 @@ class TextFile:
         if(top_n > len(dictionary)):
             top_n = len(dictionary)
 
+        # If we have a constraint, remove the keys of a dictionary which do not match
+        # the constraint (we're filtering to the set - for each key, check if it's an element of the set)
+        if(constraint != {}):
+            # ... (TODO)
+            filtered_dictionary = dictionary # WRONG!
+            pass
+        else:
+            filtered_dictionary = dictionary
+
         # Assume dictionary is already sorted, so we simply taken N off the top
-        top_values = dict(list(dictionary.items())[:top_n])
+        top_values = dict(list(filtered_dictionary.items())[:top_n])
         return top_values
 
     def get_word_length_statistics(self) -> tuple[int, int, float]:

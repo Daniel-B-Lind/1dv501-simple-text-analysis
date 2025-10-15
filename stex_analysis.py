@@ -21,6 +21,7 @@ Addendum -
 
 # Imports
 import stex_filing as stex
+import string
 import re
 
 def invoke_basic_statistics(file: stex.TextFile) -> tuple:
@@ -172,7 +173,7 @@ def invoke_sentence_statistics(file: stex.TextFile) -> tuple[str, str, dict[int,
     # TODO: This is still a little fragile in case this punctuation is used
     # but not intended to be a full stop, e.g. abbreviations (see what I did there?)
     # This works for now but word detection could be improved.
-    STOP_CHARS = frozenset(read_resource_file('stopchars'))
+    STOP_CHARS = frozenset('!?.‽')
     
     # This stores the current sentence we're working our way through.
     working_sentence = []
@@ -241,27 +242,22 @@ def invoke_character_statistics(file: stex.TextFile) -> tuple[dict[str, int], in
 
     character_occurrences = {}
 
-    LETTERS = frozenset(read_resource_file('letters'))
-    DIGITS = frozenset(read_resource_file('digits'))
-    PUNCTUATION = frozenset(read_resource_file('punctuation'))
-    # Anything not defined in these files will be counted as 'other'.
-
-    letter_count = 0
-    digit_count = 0
-    punctuation_count = 0
-    space_count = 0
-    other_count = 0
+    letter_count = 0        # .isalpha()
+    digit_count = 0         # .isdigit()
+    punctuation_count = 0   # in string.punctuation
+    space_count = 0         # .isspace()
+    other_count = 0         # catch-all
 
     with open(file.path, 'r', encoding='utf-8', errors='replace') as f:
         for line in f:
             for character in line:
-                if character in LETTERS:
+                if character in string.ascii_letters:
                     letter_count += 1
-                elif character == ' ':
+                elif character.isspace():
                     space_count += 1
-                elif character in DIGITS:
+                elif character.isdigit():
                     digit_count += 1
-                elif character in PUNCTUATION:
+                elif character in string.punctuation:
                     punctuation_count += 1
                 else:
                     other_count += 1
@@ -272,28 +268,14 @@ def invoke_character_statistics(file: stex.TextFile) -> tuple[dict[str, int], in
                 else:
                     character_occurrences[character] = 1
     
+    # Sort dictionary by values.
+    sorted_character_occurrences = dict(sorted(character_occurrences.items(), key=lambda item: item[1], reverse=True))
+
     return (
-        character_occurrences,
+        sorted_character_occurrences,
         letter_count,
         digit_count,
         punctuation_count,
         space_count,
         other_count
     )
-
-# Helper Functions
-def read_resource_file(name: str) -> str:
-    """
-    Reads a file from the 'resources' folder, located by name,
-    and returns its contents.
-    
-    Arguments:
-        name: The *name* (not path!) of the file, located in the accompanying /resources folder.
-    
-    Returns:
-        str
-    """
-    content = ''
-    with open(f"resources/{name}", 'r', encoding='utf-8', errors='replace') as f:
-        content = f.read()
-    return content.strip()
