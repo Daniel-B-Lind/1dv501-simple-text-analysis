@@ -79,7 +79,7 @@ def get_loaded_file_names(inventory: stex.FileInventory) -> tuple[str] | None:
     Returns None if no file selected.
     """
     # No files? No tuples. 
-    if(len(inventory.files) < 1):
+    if len(inventory.files) < 1:
         return None
     
     # Get the name of each file in a list
@@ -114,7 +114,7 @@ def normalize_user_input(userstr: str) -> str | None:
     
     lowercase_string = userstr.lower()
 
-    if(len(lowercase_string) < 1):
+    if len(lowercase_string) < 1:
         # Blank input, ignore
         return None
     
@@ -154,7 +154,7 @@ def get_prompt_file_contents(template_path: str) -> str:
 
 def load_file_prompt(inventory: stex.FileInventory):
     loaded_file = None
-    while(loaded_file == None):
+    while loaded_file == None:
         user_input = input("Enter path to text file:")
         try:
             loaded_file = inventory.add_file(user_input)
@@ -188,9 +188,12 @@ def load_file_prompt(inventory: stex.FileInventory):
     loaded_file.append_character_statistics(character_statistics)
     print("done!")
     
-    # TODO: perform analysis here and save results in the file we just added
-    # for now, just return
-    print("Ooops, no further functionality exists yet. Pretend I did it!")
+    print(" [5] Performing trigram analysis... ", end='')
+    trigram_statistics = analyse.invoke_trigram_analysis(loaded_file)
+    print(trigram_statistics)
+    print("eh?")
+    
+    print("All analysis passes completed without issue.")
     return
 
 def unload_file(inventory: stex.FileInventory, file_to_remove: stex.TextFile) -> str:
@@ -215,16 +218,16 @@ def save_file_prompt(content: str) -> str:
     """
     
     chosen_path = ''
-    while(chosen_path == ''):
+    while chosen_path == '':
         # Prompt for file path.
         user_input = input('Please enter the path where you wish to export the file (e.g., /tmp/working_data.json). Enter "Cancel" to abort.\n>')
-        if(user_input.lower() == 'cancel'):
+        if user_input.lower() == 'cancel':
             raise OperationCancelled
 
         # If the file already exists, confirm whether or not they want to override it.
-        if(os.path.exists(user_input)):
+        if os.path.exists(user_input):
             verification_input = input(f'There is already a file at {user_input}. Would you like to replace it? (y/N)\n>')
-            if(not verification_input.lower() == 'y'):
+            if not verification_input.lower() == 'y':
                 continue
         
         chosen_path = user_input
@@ -253,17 +256,17 @@ def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
     print("==========================")
     user_choice = -1
     # Loop until the user provides a valid choice which is inbounds
-    while(user_choice < 0 or user_choice >= number_of_files):
+    while user_choice < 0 or user_choice >= number_of_files:
         user_input = input("Enter index of file to choose >")
 
         # Special case - if the user aborts... abort.
-        if(user_input.lower() == 'c'):
+        if user_input.lower() == 'c':
             raise OperationCancelled
         
         # Otherwise, make sure it's in range (keep looping if it isn't)
         try:
             user_choice = int(user_input)
-            if(user_choice >= number_of_files or user_choice < 0):
+            if user_choice >= number_of_files or user_choice < 0:
                 raise ValueError
         except:
             print("You must select an index corresponding to a loaded file.")
@@ -277,10 +280,10 @@ def prepare_to_request_result(inventory: stex.FileInventory) -> stex.TextFile:
     If no files are loaded, returns None.
     """
 
-    if(len(inventory.files) == 0):
+    if len(inventory.files) == 0:
         # There's nothing to return the results of...
         raise ValueError("Inventory contains no HyTextFile objects!")
-    elif(len(inventory.files) == 1):
+    elif len(inventory.files) == 1:
         # If there's only a single loaded file, we don't want to bother the user since
         # they only have one choice anyway.
         return inventory.files[0]
@@ -329,8 +332,8 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
     """
     
     # If the operation we're planning to do requires a file, select one.
-    CHOICES_REQUIRING_LOADED_FILE = 'uebwsc'
-    if(user_choice in CHOICES_REQUIRING_LOADED_FILE):
+    CHOICES_REQUIRING_LOADED_FILE = set('uebwsc')
+    if user_choice in CHOICES_REQUIRING_LOADED_FILE:
         try:
             selected_file = prepare_to_request_result(master_file_inventory)
         except OperationCancelled:
@@ -432,13 +435,13 @@ def menu_loop(main_inventory: stex.FileInventory):
     user_choice = ''
     
     # Quit if the user decides to abort program loop.
-    while(user_choice != 'q'):
+    while user_choice != 'q':
         try:
             print_menu_prompt(options_menu_content, main_inventory)
 
             # Prompt user for selection until it's not blank.
             user_input = None
-            while(user_input == None):
+            while user_input == None:
                 user_input = normalize_user_input(input('>'))
             
             # Prepare "user_choice"

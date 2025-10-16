@@ -126,16 +126,10 @@ def invoke_word_frequency_statistics(file: stex.TextFile) -> tuple[dict[str,int]
                 clean_word = pattern.sub('', word)
                 if clean_word:
                     # Append to both dictionaries
-                    if clean_word in word_count:
-                        word_count[clean_word] += 1
-                    else:
-                        word_count[clean_word] = 1
+                    word_count[clean_word] = word_count.get(clean_word, 0) + 1
                     
                     length = len(clean_word)
-                    if length in word_lengths:
-                        word_lengths[length] += 1
-                    else:
-                        word_lengths[length] = 1
+                    word_lengths[length] = word_lengths.get(length, 0) + 1
     
     # Dictionaries are fully populated.
     # Sort them by values (https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value)
@@ -190,25 +184,22 @@ def invoke_sentence_statistics(file: stex.TextFile) -> tuple[str, str, dict[int,
                 # Sentence is still ongoing. Add our word to the building list.
                 working_sentence.append(word)
                 
-                # Here, our standard procedure does as Phoenix HyperSpace does and ✨diverges greatly✨ (that's a reference you don't get)
+                # Here, our standard procedure diverges greatly.
                 for character in word:
-                    if(character in STOP_CHARS and len(working_sentence) > 0):
+                    if character in STOP_CHARS and len(working_sentence) > 0:
                         # Commit working sentence to final variables.
                         finished_sentence_length = len(working_sentence)
 
                         # TODO: Messy conditional.. updates shortest_sentence if it was empty or if our last finished sentence is shorter.
                         # Also note that we are only considering sentence length by words, not characters.
                         # Via this logic, "Greetings, fellow!" is just as long as "Hi Jim."
-                        if(finished_sentence_length < len(shortest_sentence) or len(shortest_sentence) == 0):
+                        if finished_sentence_length < len(shortest_sentence) or len(shortest_sentence) == 0:
                             shortest_sentence = working_sentence.copy()
-                        if(finished_sentence_length > len(longest_sentence)):
+                        if finished_sentence_length > len(longest_sentence):
                             longest_sentence = working_sentence.copy()
                         
                         # Update sentence distribution dictionary
-                        if finished_sentence_length in sentence_distribution:
-                            sentence_distribution[finished_sentence_length] += 1
-                        else:
-                            sentence_distribution[finished_sentence_length] = 1
+                        sentence_distribution[finished_sentence_length] = sentence_distribution.get(finished_sentence_length, 0) + 1
                         
                         # Reset working sentence.
                         working_sentence = []
@@ -263,10 +254,7 @@ def invoke_character_statistics(file: stex.TextFile) -> tuple[dict[str, int], in
                     other_count += 1
 
                 # Add to occurrences dictionary.
-                if character in character_occurrences:
-                    character_occurrences[character] += 1
-                else:
-                    character_occurrences[character] = 1
+                character_occurrences[character] = character_occurrences.get(character, 0) + 1
     
     # Sort dictionary by values.
     sorted_character_occurrences = dict(sorted(character_occurrences.items(), key=lambda item: item[1], reverse=True))
@@ -279,3 +267,56 @@ def invoke_character_statistics(file: stex.TextFile) -> tuple[dict[str, int], in
         space_count,
         other_count
     )
+    
+def invoke_trigram_analysis(file: stex.TextFile, maximum_words: int = 65536) -> dict[str, int]:
+    """
+    Performs trigram analysis on the given TextFile, looking at the beginnings
+    and ends of words to obtain word boundary trigrams.
+    
+    Arguments:
+        file: TextFile to consider
+        maximum_words: int, the amount of words to process. diminishing returns after a while.
+        
+    Returns:
+        Tuple containing:
+            Dictionary containing trigram occurrences, which can be compared to
+            samples of known languages.
+    """
+    
+    word_boundary_trigrams_occurrences = {}
+    
+    # Keep track of the amount of words we've processed so we break if we exceed maximum_length
+    processed_words = 0
+    
+    with open(file.path, 'r', encoding='utf-8', errors='replace') as f:
+        for line in f:
+            # Strip everything which isn't lowercase ascii (or space)
+            # from the line before proceeding.
+            cleaned_line = re.sub(r"[^a-z ]", "", line.lower())
+            
+            for word in cleaned_line.split():
+                if processed_words > maximum_words:
+                    # We've reached our limit, abort.
+                    break
+                processed_words += 1
+                
+                # Is the word too small to be meaningfully split into trigrams?
+                if len(word) <= 3:
+                    # Treat the entire word as a trigram.
+                    # Trust me on this.
+                    word_boundary_trigrams_occurrences[word] = word_boundary_trigrams_occurrences.get(word, 0) + 1
+                    continue
+                
+                # Take both the beginning and ending of the word and append them.
+                # Yes, a word like 'else' will be appended both as 'els' and 'lse',
+                # but this will work for our analysis.
+                beginning_trigram = word[0:3]
+                ending_trigram = word[-3:]
+                
+                # Check if the key exists in the dictionary and increment it. Otherwise, add it.
+                word_boundary_trigrams_occurrences[beginning_trigram] = word_boundary_trigrams_occurrences.get(beginning_trigram, 0) + 1
+                word_boundary_trigrams_occurrences[ending_trigram] = word_boundary_trigrams_occurrences.get(ending_trigram, 0) + 1
+    
+    sorted_dict = dict(sorted(word_boundary_trigrams_occurrences.items(), key=lambda item: item[1], reverse=True))
+    
+    return sorted_dict
