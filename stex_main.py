@@ -21,6 +21,7 @@ import os.path   # ...to verify existence of dependency files
 import stex_filing as stex   # ...contains classes to track data on files
 import stex_json as serializer   # ...contains functions to serialize/deserialize data
 import stex_analysis as analyse
+import stex_plotting as plot # ...contains all matplotlib shenanigans
 import stex_pretty as pretty  # ...to get human-readable results
 
 # Custom exception
@@ -151,7 +152,7 @@ def get_prompt_file_contents(template_path: str) -> str:
 
     return options_menu_content
 
-def interactive_load_file_prompt(inventory: stex.FileInventory):
+def load_file_prompt(inventory: stex.FileInventory):
     loaded_file = None
     while(loaded_file == None):
         user_input = input("Enter path to text file:")
@@ -200,6 +201,39 @@ def unload_file(inventory: stex.FileInventory, file_to_remove: stex.TextFile) ->
         return "An unexpected error occurred while attempting to unload that file."
     
     return 'Successfully unloaded file!'
+
+def save_file_prompt(content: str) -> str:
+    """
+    Shows an interactive prompt which asks what file to save the contents of 'content' in.
+    If the user provides a valid path and doesn't abort, the file will be saved.
+    
+    Arguments:
+        content: file contents
+    
+    Returns:
+        Chosen path to saved file.
+    """
+    
+    chosen_path = ''
+    while(chosen_path == ''):
+        # Prompt for file path.
+        user_input = input('Please enter the path where you wish to export the file (e.g., /tmp/working_data.json). Enter "Cancel" to abort.\n>')
+        if(user_input.lower() == 'cancel'):
+            raise OperationCancelled
+
+        # If the file already exists, confirm whether or not they want to override it.
+        if(os.path.exists(user_input)):
+            verification_input = input(f'There is already a file at {user_input}. Would you like to replace it? (y/N)\n>')
+            if(not verification_input.lower() == 'y'):
+                continue
+        
+        chosen_path = user_input
+    
+    # Write data to file.
+    with open(chosen_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    
+    return chosen_path
 
 def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
     """
@@ -285,6 +319,11 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             w = print word frequency
             s = print sentence analysis
             c = print char analysis
+            
+            i = identify language
+            
+            1 = compare 2 files
+            2 = word frequency comparison 2 files
 
     Does not return a value - delegates action and prints to screen.
     """
@@ -309,7 +348,7 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             return
 
         case 'l': # Load file
-            interactive_load_file_prompt(master_file_inventory)
+            load_file_prompt(master_file_inventory)
             return
 
         case 'u': #Unload file
@@ -318,7 +357,20 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             return
 
         case 'e': # Export results
-            print("Not yet implemented!")
+            print("Serializing results...", end='')
+            full_data_dump = serializer.serialize_all(selected_file)
+            print("done!")
+            
+            try:
+                result = save_file_prompt(full_data_dump)
+                print(f"Successfully exported data to file at {result}!")
+            except OperationCancelled:
+                print("Cancelled.")
+            except PermissionError:
+                print("You do not have permission to write to that file.")
+            except:
+                print("An unexpected error occurred while attempting to export the data.")
+            
             return
 
         case 'q': # Quit
@@ -330,6 +382,7 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
         case 'b': # Basic statistics
             result = pretty.fetch_basic_statistics(selected_file)
             print(result)
+            plot.plot_basic_analysis(selected_file)
             return
         
         case 'w': # Word frequency statistics
@@ -341,6 +394,8 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             
             orphan_word_count = len(selected_file.get_orphan_words())
             print(f'Words appearing only once: {pretty.format_number(orphan_word_count)}')
+            
+            plot.plot_word_analysis(selected_file, 10)
             return
         
         case 's': # Sentence analysis
@@ -348,11 +403,18 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             print(frequency_table)
             sentence_stats = pretty.fetch_sentence_statistics(selected_file)
             print(sentence_stats)
+            
+            plot.plot_sentence_analysis(selected_file)
             return
 
         case 'c': # Character analysis
             letter_frequency_table = pretty.fetch_common_letters_list(selected_file)
             print(letter_frequency_table)
+            letter_type_distribution_table = pretty.fetch_character_type_distribution_list(selected_file)
+            print(letter_type_distribution_table)
+            
+            plot.plot_character_analysis(selected_file, 10)
+            return
 
         case _:
             print('Invalid selection or option not yet implemented.')

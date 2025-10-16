@@ -19,7 +19,7 @@ import stex_filing as stex
 def fetch_basic_statistics(file: stex.TextFile) -> str:
     """
     Returns a printable string containing left/right aligned basic statistics
-    for the HyTextFile provided, including:
+    for the TextFile provided, including:
     Number of Lines, Number of Words, Number of Unique Words, 
     Characters, Average words in a line, characters in a word.
     """
@@ -76,21 +76,54 @@ def fetch_sentence_statistics(file: stex.TextFile) -> str:
     result = format_dictionary(stats)
     return result
 
+def fetch_character_type_distribution_list(file: stex.TextFile) -> str:
+    """
+    
+    """
+    
+    stats = {
+        'Letters': file.letter_count,
+        'Digits': file.digit_count,
+        'Spaces': file.space_count,
+        'Punctuation': file.punctuation_count,
+        'Other': file.other_count
+    }
+    
+    total_characters = file.total_characters
+    
+    columns = [
+        Column('Type', '<'),
+        Column('Occurrences', '>'),
+        Column('Percentage', '>')
+    ]
+    
+    rows = []
+    
+    for char_type, occurrences in stats.items():
+        percentage = (occurrences / total_characters) * 100
+        
+        row = create_character_row(char_type, occurrences, percentage)
+        rows.append(row)
+    
+    table = gen_table(columns, rows)
+    return table
+
+
 def fetch_word_frequency_list(file: stex.TextFile, top_n_words: int = 10) -> str:
     """
-    Given a HyTextFile object, this will return a stylized list of the N 
+    Given a TextFile object, this will return a stylized list of the N 
     most common words on file for that object as well as the amount of 
     occurrences and the % of words that each entry makes up.
 
     Arguments:
-        file: HyTextFile to consider
+        file: TextFile to consider
         n: Top N objects to list. If this exceeds the total amount of unique words, this will be decreased.
 
     Returns:
         String of the prettied word frequency list.
     """
     # For starters, we'll want to actually fetch these statistics to construct a
-    # stylized list. This functionality is handled in the HyTextFile class.
+    # stylized list. This functionality is handled in the TextFile class.
     # The returned dictionary contains the word as a key and the amount of occurrences as a value.
     common_words_dictionary = file.get_top_elements_of_dictionary(file.word_occurrences, top_n_words)
 
@@ -158,8 +191,8 @@ def fetch_sentence_length_distribution_list(file: stex.TextFile, top_n_sentences
 
 def fetch_common_letters_list(file: stex.TextFile, top_n_letters: int = 10) -> str:
 
-    constraint = string.ascii_letters
-    top_letters = file.get_top_elements_of_dictionary(file.character_occurrences, 10, constraint)
+    constraint = set(string.ascii_letters)
+    top_letters = file.get_top_elements_of_dictionary(file.character_occurrences, top_n_letters, constraint)
     total_letters = file.letter_count
 
     columns = [
@@ -326,4 +359,25 @@ def create_sentence_row(rank: int, length: int, occurrences: int) -> Row:
         "Rank": rank,
         "Amount of Words": length,
         "Count of Sentences": occurrences
+    })
+
+def create_character_row(char_type: str, occurrences: int, percentage: float) -> Row:
+    """
+    Creates a RowObj containing rankings for a specific entry in a
+    character type distribution table.
+
+    Arguments:
+        char_type: Character type (letter, digit, punctuation)
+        occurrences: Amount of characters of that type.
+        percentage: Floating point representation of a percentage
+
+    Returns:
+        Row
+    """
+    formatted_occurrences = f"{occurrences:,} times"
+    formatted_percentage = f"({percentage:5.2f}%)"
+    return Row({
+        "Type": char_type,
+        "Occurrences": formatted_occurrences,
+        "Percentage": formatted_percentage,
     })
