@@ -29,6 +29,7 @@ class TextFile:
         self.path = filepath
         self.shortname = os.path.basename(self.path)
 
+    # ----------- DATA SAVING FUNCTIONS  -----------
     def append_basic_statistics(self, stats: tuple) -> None:
         """
         Stores basic statistics in HyTextFile instance.
@@ -111,7 +112,7 @@ class TextFile:
 
         self.total_characters = sum(self.character_occurrences.values())
 
-
+    # ----------- DATA RETRIEVAL FUNCTIONS -----------
     def get_average_words_per_line(self, round_to: int = 3) -> float:
         """
         Returns the average words per line, rounded to round_to decimals.
@@ -137,7 +138,8 @@ class TextFile:
         Returns the average number of words per sentence, rounded to round_to decimals.
         """
         if not self.sentence_length_distribution:
-            raise ValueError("Sentence data is not populated for this TextFile!")
+            # No sentences? Weird.
+            return 0
 
         total_words = sum(length * count for length, count in self.sentence_length_distribution.items())
         total_sentences = self.total_sentences
@@ -172,7 +174,7 @@ class TextFile:
         return tuple(unique_words)
 
     
-    def get_top_elements_of_dictionary(self, dictionary: dict, top_n: int, constraint: set = {}) -> dict[str, int]:
+    def get_top_elements_of_dictionary(self, dictionary: dict, top_n: int, constraint: set | None = None) -> dict:
         """
         Finds the N first entries in a dictionary. If the dictionary
         is sorted, which it should be, this will be the top values of it.
@@ -192,16 +194,27 @@ class TextFile:
 
         # If we have a constraint, remove the keys of a dictionary which do not match
         # the constraint (we're filtering to the set - for each key, check if it's an element of the set)
-        if(constraint != {}):
-            # ... (TODO)
-            filtered_dictionary = dictionary # WRONG!
-            pass
-        else:
-            filtered_dictionary = dictionary
+        if(constraint != None):
+            filtered_dictionary = {}
+            element_count = 0
+            
+            for key, value in dictionary.items():
+                if key in constraint:
+                    # If the key matches our contraint, append to filterd dictionary.
+                    filtered_dictionary[key] = value
+                    
+                    # Optimization - since we know how many elements we've added,
+                    # we can break as soon as we have enough and avoid filtering more
+                    # than we need to.
+                    element_count += 1
+                    if (element_count >= top_n):
+                        break
 
-        # Assume dictionary is already sorted, so we simply taken N off the top
-        top_values = dict(list(filtered_dictionary.items())[:top_n])
-        return top_values
+            # dictionary is filtered and has been sliced to top_n values
+            return filtered_dictionary
+        else:
+            top_values = dict(list(dictionary.items())[:top_n])
+            return top_values
 
     def get_word_length_statistics(self) -> tuple[int, int, float]:
         """
@@ -236,8 +249,6 @@ class TextFile:
             int(sorted_word_lengths[-1]),
             average
         )
-        
-
 
 class FileInventory:
     """

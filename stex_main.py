@@ -21,6 +21,7 @@ import os.path   # ...to verify existence of dependency files
 import stex_filing as stex   # ...contains classes to track data on files
 import stex_json as serializer   # ...contains functions to serialize/deserialize data
 import stex_analysis as analyse
+import stex_plotting as plot # ...contains all matplotlib shenanigans
 import stex_pretty as pretty  # ...to get human-readable results
 
 # Custom exception
@@ -78,7 +79,7 @@ def get_loaded_file_names(inventory: stex.FileInventory) -> tuple[str] | None:
     Returns None if no file selected.
     """
     # No files? No tuples. 
-    if(len(inventory.files) < 1):
+    if len(inventory.files) < 1:
         return None
     
     # Get the name of each file in a list
@@ -113,7 +114,7 @@ def normalize_user_input(userstr: str) -> str | None:
     
     lowercase_string = userstr.lower()
 
-    if(len(lowercase_string) < 1):
+    if len(lowercase_string) < 1:
         # Blank input, ignore
         return None
     
@@ -151,9 +152,9 @@ def get_prompt_file_contents(template_path: str) -> str:
 
     return options_menu_content
 
-def interactive_load_file_prompt(inventory: stex.FileInventory):
+def load_file_prompt(inventory: stex.FileInventory):
     loaded_file = None
-    while(loaded_file == None):
+    while loaded_file == None:
         user_input = input("Enter path to text file:")
         try:
             loaded_file = inventory.add_file(user_input)
@@ -187,9 +188,12 @@ def interactive_load_file_prompt(inventory: stex.FileInventory):
     loaded_file.append_character_statistics(character_statistics)
     print("done!")
     
-    # TODO: perform analysis here and save results in the file we just added
-    # for now, just return
-    print("Ooops, no further functionality exists yet. Pretend I did it!")
+    print(" [5] Performing trigram analysis... ", end='')
+    trigram_statistics = analyse.invoke_trigram_analysis(loaded_file)
+    print(trigram_statistics)
+    print("eh?")
+    
+    print("All analysis passes completed without issue.")
     return
 
 def unload_file(inventory: stex.FileInventory, file_to_remove: stex.TextFile) -> str:
@@ -200,6 +204,39 @@ def unload_file(inventory: stex.FileInventory, file_to_remove: stex.TextFile) ->
         return "An unexpected error occurred while attempting to unload that file."
     
     return 'Successfully unloaded file!'
+
+def save_file_prompt(content: str) -> str:
+    """
+    Shows an interactive prompt which asks what file to save the contents of 'content' in.
+    If the user provides a valid path and doesn't abort, the file will be saved.
+    
+    Arguments:
+        content: file contents
+    
+    Returns:
+        Chosen path to saved file.
+    """
+    
+    chosen_path = ''
+    while chosen_path == '':
+        # Prompt for file path.
+        user_input = input('Please enter the path where you wish to export the file (e.g., /tmp/working_data.json). Enter "Cancel" to abort.\n>')
+        if user_input.lower() == 'cancel':
+            raise OperationCancelled
+
+        # If the file already exists, confirm whether or not they want to override it.
+        if os.path.exists(user_input):
+            verification_input = input(f'There is already a file at {user_input}. Would you like to replace it? (y/N)\n>')
+            if not verification_input.lower() == 'y':
+                continue
+        
+        chosen_path = user_input
+    
+    # Write data to file.
+    with open(chosen_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    
+    return chosen_path
 
 def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
     """
@@ -219,17 +256,17 @@ def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
     print("==========================")
     user_choice = -1
     # Loop until the user provides a valid choice which is inbounds
-    while(user_choice < 0 or user_choice >= number_of_files):
+    while user_choice < 0 or user_choice >= number_of_files:
         user_input = input("Enter index of file to choose >")
 
         # Special case - if the user aborts... abort.
-        if(user_input.lower() == 'c'):
+        if user_input.lower() == 'c':
             raise OperationCancelled
         
         # Otherwise, make sure it's in range (keep looping if it isn't)
         try:
             user_choice = int(user_input)
-            if(user_choice >= number_of_files or user_choice < 0):
+            if user_choice >= number_of_files or user_choice < 0:
                 raise ValueError
         except:
             print("You must select an index corresponding to a loaded file.")
@@ -243,10 +280,10 @@ def prepare_to_request_result(inventory: stex.FileInventory) -> stex.TextFile:
     If no files are loaded, returns None.
     """
 
-    if(len(inventory.files) == 0):
+    if len(inventory.files) == 0:
         # There's nothing to return the results of...
         raise ValueError("Inventory contains no HyTextFile objects!")
-    elif(len(inventory.files) == 1):
+    elif len(inventory.files) == 1:
         # If there's only a single loaded file, we don't want to bother the user since
         # they only have one choice anyway.
         return inventory.files[0]
@@ -285,13 +322,18 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             w = print word frequency
             s = print sentence analysis
             c = print char analysis
+            
+            i = identify language
+            
+            1 = compare 2 files
+            2 = word frequency comparison 2 files
 
     Does not return a value - delegates action and prints to screen.
     """
     
     # If the operation we're planning to do requires a file, select one.
-    CHOICES_REQUIRING_LOADED_FILE = 'uebwsc'
-    if(user_choice in CHOICES_REQUIRING_LOADED_FILE):
+    CHOICES_REQUIRING_LOADED_FILE = set('uebwsc')
+    if user_choice in CHOICES_REQUIRING_LOADED_FILE:
         try:
             selected_file = prepare_to_request_result(master_file_inventory)
         except OperationCancelled:
@@ -309,7 +351,7 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             return
 
         case 'l': # Load file
-            interactive_load_file_prompt(master_file_inventory)
+            load_file_prompt(master_file_inventory)
             return
 
         case 'u': #Unload file
@@ -318,7 +360,20 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             return
 
         case 'e': # Export results
-            print("Not yet implemented!")
+            print("Serializing results...", end='')
+            full_data_dump = serializer.serialize_all(selected_file)
+            print("done!")
+            
+            try:
+                result = save_file_prompt(full_data_dump)
+                print(f"Successfully exported data to file at {result}!")
+            except OperationCancelled:
+                print("Cancelled.")
+            except PermissionError:
+                print("You do not have permission to write to that file.")
+            except:
+                print("An unexpected error occurred while attempting to export the data.")
+            
             return
 
         case 'q': # Quit
@@ -330,6 +385,7 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
         case 'b': # Basic statistics
             result = pretty.fetch_basic_statistics(selected_file)
             print(result)
+            plot.plot_basic_analysis(selected_file)
             return
         
         case 'w': # Word frequency statistics
@@ -341,6 +397,8 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             
             orphan_word_count = len(selected_file.get_orphan_words())
             print(f'Words appearing only once: {pretty.format_number(orphan_word_count)}')
+            
+            plot.plot_word_analysis(selected_file, 10)
             return
         
         case 's': # Sentence analysis
@@ -348,11 +406,18 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             print(frequency_table)
             sentence_stats = pretty.fetch_sentence_statistics(selected_file)
             print(sentence_stats)
+            
+            plot.plot_sentence_analysis(selected_file)
             return
 
         case 'c': # Character analysis
             letter_frequency_table = pretty.fetch_common_letters_list(selected_file)
             print(letter_frequency_table)
+            letter_type_distribution_table = pretty.fetch_character_type_distribution_list(selected_file)
+            print(letter_type_distribution_table)
+            
+            plot.plot_character_analysis(selected_file, 10)
+            return
 
         case _:
             print('Invalid selection or option not yet implemented.')
@@ -370,13 +435,13 @@ def menu_loop(main_inventory: stex.FileInventory):
     user_choice = ''
     
     # Quit if the user decides to abort program loop.
-    while(user_choice != 'q'):
+    while user_choice != 'q':
         try:
             print_menu_prompt(options_menu_content, main_inventory)
 
             # Prompt user for selection until it's not blank.
             user_input = None
-            while(user_input == None):
+            while user_input == None:
                 user_input = normalize_user_input(input('>'))
             
             # Prepare "user_choice"
