@@ -292,6 +292,7 @@ def invoke_trigram_analysis(file: stex.TextFile, maximum_words: int = 65536) -> 
         for line in f:
             # Strip everything which isn't lowercase ascii (or space)
             # from the line before proceeding.
+            # TODO: only the english alphabet? for a language detection tool? fuck's sake
             cleaned_line = re.sub(r"[^a-z ]", "", line.lower())
             
             for word in cleaned_line.split():
@@ -308,10 +309,10 @@ def invoke_trigram_analysis(file: stex.TextFile, maximum_words: int = 65536) -> 
                     continue
                 
                 # Take both the beginning and ending of the word and append them.
-                # Yes, a word like 'else' will be appended both as 'els' and 'lse',
+                # Yes, a word like 'else' will be appended both as '$els' and '$lse',
                 # but this will work for our analysis.
-                beginning_trigram = word[0:3]
-                ending_trigram = word[-3:]
+                beginning_trigram = f'${word[0:3]}'
+                ending_trigram = f'{word[-3:]}$'
                 
                 # Check if the key exists in the dictionary and increment it. Otherwise, add it.
                 word_boundary_trigrams_occurrences[beginning_trigram] = word_boundary_trigrams_occurrences.get(beginning_trigram, 0) + 1
