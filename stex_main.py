@@ -18,13 +18,14 @@ In the future, the TUI helpers may be moved to another file.
 # Imports
 from sys import exit # ...to gracefully exit
 import os.path   # ...to verify existence of dependency files
+from pathlib import Path  # ...for text file search and display
 import stex_filing as stex   # ...contains classes to track data on files
 import stex_json as serializer   # ...contains functions to serialize/deserialize data
 import stex_analysis as analyse
 import stex_plotting as plot # ...contains all matplotlib shenanigans
 import stex_pretty as pretty  # ...to get human-readable results
 
-# Custom exception
+# Custom exception 
 class OperationCancelled(Exception):
     """
     Raised when a user explicitly chooses to abort or cancel an operation 
@@ -73,24 +74,24 @@ def generate_stylized_content_box(header_text: str, padding: int = 2) -> str:
 
     return header
 
-def get_loaded_file_names(inventory: stex.FileInventory) -> tuple[str] | None:
+def get_loaded_file_names(inventory: list[stex.TextFile]) -> tuple[str] | None:
     """
     Returns the names of files which are currently selected in a tuple.
     Returns None if no file selected.
     """
     # No files? No tuples. 
-    if len(inventory.files) < 1:
+    if len(inventory) < 1:
         return None
     
     # Get the name of each file in a list
     names = []
-    for file in inventory.files:
+    for file in inventory:
         names.append(file.shortname)
     
     return tuple(names)
     
 
-def print_menu_prompt(options_menu_content: str, inventory: stex.FileInventory):
+def print_menu_prompt(options_menu_content: str, inventory: list[stex.TextFile]):
     # TODO: base width of dividing lines on intro header?
     
     # Generate content box for the possibly options. 
@@ -152,12 +153,14 @@ def get_prompt_file_contents(template_path: str) -> str:
 
     return options_menu_content
 
-def load_file_prompt(inventory: stex.FileInventory):
+def load_file_prompt(inventory: list[stex.TextFile]):
     loaded_file = None
     while loaded_file == None:
         user_input = input("Enter path to text file:")
         try:
-            loaded_file = inventory.add_file(user_input)
+            candidate_file = stex.TextFile(user_input)
+            inventory.append(candidate_file)
+            loaded_file = candidate_file
         except FileNotFoundError:
             print("No such file could be found.")
         except ValueError:
@@ -188,18 +191,21 @@ def load_file_prompt(inventory: stex.FileInventory):
     loaded_file.append_character_statistics(character_statistics)
     print("done!")
     
-    print(" [5] Performing trigram analysis... ", end='')
+    print(" [5A] Performing trigram analysis... ", end='')
     trigram_statistics = analyse.invoke_trigram_analysis(loaded_file)
-    print(trigram_statistics)
-    print("eh?")
+    print("done!")
+    print(" [5B] Finding closest matching language...", end='')
+    language_probabilities = analyse.invoke_find_closest_trigram_sample(trigram_statistics)
+    loaded_file.append_language_probabilities(language_probabilities)
+    print("done!")
     
     print("All analysis passes completed without issue.")
     return
 
-def unload_file(inventory: stex.FileInventory, file_to_remove: stex.TextFile) -> str:
+def unload_file(inventory: list[stex.TextFile], file_to_remove: stex.TextFile) -> str:
     # Remove from inventory
     try:
-        inventory.files.remove(file_to_remove)
+        inventory.remove(file_to_remove)
     except:
         return "An unexpected error occurred while attempting to unload that file."
     
@@ -220,13 +226,13 @@ def save_file_prompt(content: str) -> str:
     chosen_path = ''
     while chosen_path == '':
         # Prompt for file path.
-        user_input = input('Please enter the path where you wish to export the file (e.g., /tmp/working_data.json). Enter "Cancel" to abort.\n>')
+        user_input = input('Please enter the path where you wish to export the file (e.g., /tmp/working_data.json). Enter "Cancel" to abort.\n> ')
         if user_input.lower() == 'cancel':
             raise OperationCancelled
 
         # If the file already exists, confirm whether or not they want to override it.
         if os.path.exists(user_input):
-            verification_input = input(f'There is already a file at {user_input}. Would you like to replace it? (y/N)\n>')
+            verification_input = input(f'There is already a file at {user_input}. Would you like to replace it? (y/N)\n> ')
             if not verification_input.lower() == 'y':
                 continue
         
@@ -238,7 +244,7 @@ def save_file_prompt(content: str) -> str:
     
     return chosen_path
 
-def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
+def select_file_prompt(inventory: list[stex.TextFile]) -> stex.TextFile:
     """
     A generic function called from any other function which needs the user
     to select one of the currently loaded files via an interactive prompt.
@@ -250,9 +256,10 @@ def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
     print("C. Cancel Operation")
 
     # List every tracked file and ask them which one to remove.
-    number_of_files = len(inventory.files)
+    number_of_files = len(inventory)
     for i in range(number_of_files):
-        print(f"{i}. {inventory.files[i].shortname}")
+        print(f"{i}. {inventory[i].shortname}")
+        
     print("==========================")
     user_choice = -1
     # Loop until the user provides a valid choice which is inbounds
@@ -270,9 +277,9 @@ def select_file_prompt(inventory: stex.FileInventory) -> stex.TextFile:
                 raise ValueError
         except:
             print("You must select an index corresponding to a loaded file.")
-    return inventory.files[user_choice]
+    return inventory[user_choice]
 
-def prepare_to_request_result(inventory: stex.FileInventory) -> stex.TextFile:
+def prepare_to_request_result(inventory: list[stex.TextFile]) -> stex.TextFile:
     """
     Query the user on which file they want the results of. If only one file is available,
     automatically chooses it.
@@ -280,13 +287,13 @@ def prepare_to_request_result(inventory: stex.FileInventory) -> stex.TextFile:
     If no files are loaded, returns None.
     """
 
-    if len(inventory.files) == 0:
+    if len(inventory) == 0:
         # There's nothing to return the results of...
         raise ValueError("Inventory contains no HyTextFile objects!")
-    elif len(inventory.files) == 1:
+    elif len(inventory) == 1:
         # If there's only a single loaded file, we don't want to bother the user since
         # they only have one choice anyway.
-        return inventory.files[0]
+        return inventory[0]
 
     # Alright, if we're here, we do actually have to prompt the user.
     return select_file_prompt(inventory)
@@ -296,19 +303,19 @@ def list_text_files() -> str:
     Lists the files in the current working directory and returns a string
     of all files ending in .txt, separated by newline
     """
-    file_list = os.listdir('.')
-    file_list_clean = ''
-    for file in file_list:
-        if file.endswith('.txt'):
-            file_list_clean += (file + '\n')
-    return file_list_clean.strip()
+    txt_files = []
 
-def execute(master_file_inventory: stex.FileInventory, user_choice: str):
+    for path in Path('.').rglob('*.txt'):
+        txt_files.append(str(path))
+
+    return '\n'.join(txt_files)
+
+def execute(master_file_inventory: list[stex.TextFile], user_choice: str):
     """
     Primary function to execute user's desired effects.
 
     Arguments:
-        master_file_inventory: HyFileInventory object which tracks file data
+        master_file_inventory: List of TextFile objects
 
         user_choice: single character indicating the action selected in the main menu loop.
         Possibly Values:
@@ -332,7 +339,7 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
     """
     
     # If the operation we're planning to do requires a file, select one.
-    CHOICES_REQUIRING_LOADED_FILE = set('uebwsc')
+    CHOICES_REQUIRING_LOADED_FILE = set('uebwsci')
     if user_choice in CHOICES_REQUIRING_LOADED_FILE:
         try:
             selected_file = prepare_to_request_result(master_file_inventory)
@@ -389,20 +396,20 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
             return
         
         case 'w': # Word frequency statistics
-            frequency_table = pretty.fetch_word_frequency_list(selected_file)
+            frequency_table = pretty.fetch_word_frequency_table(selected_file)
             print(frequency_table)
             
             length_stats = pretty.fetch_word_length_statistics(selected_file)
             print(length_stats)
             
             orphan_word_count = len(selected_file.get_orphan_words())
-            print(f'Words appearing only once: {pretty.format_number(orphan_word_count)}')
+            print(f'Words appearing only once: {pretty._format_number(orphan_word_count)}')
             
             plot.plot_word_analysis(selected_file, 10)
             return
         
         case 's': # Sentence analysis
-            frequency_table = pretty.fetch_sentence_length_distribution_list(selected_file)
+            frequency_table = pretty.fetch_sentence_length_distribution_table(selected_file)
             print(frequency_table)
             sentence_stats = pretty.fetch_sentence_statistics(selected_file)
             print(sentence_stats)
@@ -413,23 +420,29 @@ def execute(master_file_inventory: stex.FileInventory, user_choice: str):
         case 'c': # Character analysis
             letter_frequency_table = pretty.fetch_common_letters_list(selected_file)
             print(letter_frequency_table)
-            letter_type_distribution_table = pretty.fetch_character_type_distribution_list(selected_file)
+            letter_type_distribution_table = pretty.fetch_character_type_distribution_table(selected_file)
             print(letter_type_distribution_table)
             
             plot.plot_character_analysis(selected_file, 10)
+            return
+        
+        case 'i': # Identify language
+            language_probability_table = pretty.fetch_language_guess_table(selected_file)
+            print(language_probability_table)
+            plot.plot_language_confidence(selected_file)
             return
 
         case _:
             print('Invalid selection or option not yet implemented.')
             return
 
-def menu_loop(main_inventory: stex.FileInventory):
+def menu_loop(main_inventory: list[stex.TextFile]):
     """
     Main program loop. Handles the general flow of prompting the user and performing actions.
     """
     # Read the contents of option_prompt.txt into a cached options_menu_content,
     # to avoid reading the file every time we print the menu.
-    template_path = 'option_prompt.txt'
+    template_path = 'resources/option_prompt.txt'
     options_menu_content = get_prompt_file_contents(template_path)
 
     user_choice = ''
@@ -442,7 +455,7 @@ def menu_loop(main_inventory: stex.FileInventory):
             # Prompt user for selection until it's not blank.
             user_input = None
             while user_input == None:
-                user_input = normalize_user_input(input('>'))
+                user_input = normalize_user_input(input('> '))
             
             # Prepare "user_choice"
             user_choice = user_input
@@ -460,13 +473,13 @@ def main():
     """
     Program entrypoint.
     """
-    welcome_prompt = get_prompt_file_contents("welcome_prompt.txt")
+    welcome_prompt = get_prompt_file_contents("resources/welcome_prompt.txt")
     intro_header = generate_stylized_content_box(welcome_prompt)
     
     print(intro_header)
 
-    # Instantiate the main inventory of text files
-    main_inventory = stex.FileInventory()
+    # Instantiate the main list  of TextFiles
+    main_inventory = []
 
     # Transfer executon to main menu loop. Will return here (and exit) when the user quits.
     menu_loop(main_inventory)
@@ -476,5 +489,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # important note for later: matplotlib works fine in jupyter, inline

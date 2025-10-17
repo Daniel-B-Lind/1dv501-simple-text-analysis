@@ -18,7 +18,7 @@ import stex_filing as stex
 
 def serialize_all(file: stex.TextFile) -> str:
     """
-    Serializes all elements of a TextFile (Basic, Words, Sentences, Characters)
+    Serializes all elements of a TextFile (Basic, Words, Sentences, Characters, Language)
     and returns the full json containing all data.
     
     Arguments:
@@ -31,10 +31,11 @@ def serialize_all(file: stex.TextFile) -> str:
         'basic_analysis': serialize_basic_statistics(file),
         'word_analysis': serialize_word_frequency_statistics(file),
         'sentence_analysis': serialize_sentence_statistics(file),
-        'character_analysis': serialize_character_statistics(file)
+        'character_analysis': serialize_character_statistics(file),
+        'language_analysis': serialize_language_probabilities(file)
     }
     
-    return json.dumps(result, indent=4)
+    return json.dumps(result, ensure_ascii=False, indent=4)
 
 def serialize_basic_statistics(file: stex.TextFile) -> dict:
     """
@@ -121,3 +122,30 @@ def serialize_character_statistics(file: stex.TextFile) -> dict:
     }
     
     return result
+
+def serialize_language_probabilities(file: stex.TextFile) -> dict:
+    """
+    
+    """
+    
+    result = {
+        'best_guess_language': file.most_likely_language,
+        'all_probabilities': file.language_probabilities
+    }
+    
+    return result
+
+def deserialize_from_file(path: str) -> dict:
+    """
+    Given the path to a .json file, this function will
+    attempt to deserialize it into a Python dictionary.
+    
+    Arguments:
+        path: path to .json file
+    
+    Returns:
+        Dictionary.
+    """
+    with open(path, 'r') as file:
+        data = json.load(file)
+    return data

@@ -15,7 +15,7 @@ from stex_filing import TextFile
 def main(input_path: str, output_path: str, maximum_words_to_parse: int = 65536) -> None:
     dummy_file = TextFile(input_path)
     trigram_dictionary = invoke_trigram_analysis(dummy_file, maximum_words_to_parse)
-    json_trigrams = json.dumps(trigram_dictionary, indent=4)
+    json_trigrams = json.dumps(trigram_dictionary, ensure_ascii=False, indent=4)
     
     save_output(json_trigrams, output_path)
 

@@ -35,7 +35,7 @@ def fetch_basic_statistics(file: stex.TextFile) -> str:
         'Average characters in a word': file.get_average_characters_per_word()
     }
     
-    result = format_dictionary(stats)
+    result = _format_dictionary(stats)
     return result.strip()
 
 def fetch_word_length_statistics(file: stex.TextFile) -> str:
@@ -46,12 +46,12 @@ def fetch_word_length_statistics(file: stex.TextFile) -> str:
     shortest_length, longest_length, average_length = file.get_word_length_statistics()
     
     stats = {
-        'Shortest word': f'{format_number(shortest_length)} characters',
-        'Longest word': f'{format_number(longest_length)} characters',
+        'Shortest word': f'{_format_number(shortest_length)} characters',
+        'Longest word': f'{_format_number(longest_length)} characters',
         'Average word length': f'{str(round(average_length, 3))} characters'
     }
     
-    result = format_dictionary(stats)
+    result = _format_dictionary(stats)
     return result
 
 def fetch_sentence_statistics(file: stex.TextFile) -> str:
@@ -64,19 +64,19 @@ def fetch_sentence_statistics(file: stex.TextFile) -> str:
     longest_sentence = file.longest_sentence_text
 
     stats = {
-        'Total sentences': f'{format_number(sentence_count)}',
+        'Total sentences': f'{_format_number(sentence_count)}',
         'Average words per sentence': f'{average}',
-        'Shortest sentence': f'{format_number(len(shortest_sentence))} words',
-        'Longest sentence': f'{format_number(len(longest_sentence))} words', 
+        'Shortest sentence': f'{_format_number(len(shortest_sentence))} words',
+        'Longest sentence': f'{_format_number(len(longest_sentence))} words', 
         '': '',
         'Shortest sentence text': f'"{shortest_sentence}"',
         'Longest sentence text': f'"{longest_sentence}"', 
     }
 
-    result = format_dictionary(stats)
+    result = _format_dictionary(stats)
     return result
 
-def fetch_character_type_distribution_list(file: stex.TextFile) -> str:
+def fetch_character_type_distribution_table(file: stex.TextFile) -> str:
     """
     
     """
@@ -102,14 +102,14 @@ def fetch_character_type_distribution_list(file: stex.TextFile) -> str:
     for char_type, occurrences in stats.items():
         percentage = (occurrences / total_characters) * 100
         
-        row = create_character_row(char_type, occurrences, percentage)
+        row = _create_character_row(char_type, occurrences, percentage)
         rows.append(row)
     
-    table = gen_table(columns, rows)
+    table = _gen_table(columns, rows)
     return table
 
 
-def fetch_word_frequency_list(file: stex.TextFile, top_n_words: int = 10) -> str:
+def fetch_word_frequency_table(file: stex.TextFile, top_n_words: int = 10) -> str:
     """
     Given a TextFile object, this will return a stylized list of the N 
     most common words on file for that object as well as the amount of 
@@ -147,15 +147,15 @@ def fetch_word_frequency_list(file: stex.TextFile, top_n_words: int = 10) -> str
         # Calculate percentage relative to total number of all words
         percentage = (count / total_number_of_words) * 100
         
-        row = create_word_row(rank, word, count, percentage)
+        row = _create_word_row(rank, word, count, percentage)
         rows.append(row)
 
     # Generate the table
-    table = gen_table(columns, rows)
+    table = _gen_table(columns, rows)
     
     return table
 
-def fetch_sentence_length_distribution_list(file: stex.TextFile, top_n_sentences: int = 5) -> str:
+def fetch_sentence_length_distribution_table(file: stex.TextFile, top_n_sentences: int = 5) -> str:
     """
     Much like the word frequency list, this function will take a
     TextFile object and generate a prettied table-like representation
@@ -182,11 +182,11 @@ def fetch_sentence_length_distribution_list(file: stex.TextFile, top_n_sentences
     ranked_items = enumerate(top_entries.items(), start=1)
 
     for rank, (length, count) in ranked_items:
-        row = create_sentence_row(rank, length, count)
+        row = _create_sentence_row(rank, length, count)
         rows.append(row)
 
     # Generate the table
-    table = gen_table(columns, rows)
+    table = _gen_table(columns, rows)
     return table
 
 def fetch_common_letters_list(file: stex.TextFile, top_n_letters: int = 10) -> str:
@@ -210,18 +210,41 @@ def fetch_common_letters_list(file: stex.TextFile, top_n_letters: int = 10) -> s
         # Calculate percentage relative to total number of other letters
         percentage = (count / total_letters) * 100
         
-        row = create_word_row(rank, letter, count, percentage)
+        row = _create_word_row(rank, letter, count, percentage)
         rows.append(row)
 
     # Generate the table
-    table = gen_table(columns, rows)
+    table = _gen_table(columns, rows)
+    return table
+
+def fetch_language_guess_table(file: stex.TextFile, top_n_languages: int = 5) -> str:
+    """
+    
+    Returns:
+        Printable string
+    """
+    top_entries = file.get_top_elements_of_dictionary(file.language_probabilities, top_n_languages)
+
+    columns = [
+        Column('Language', '<'),
+        Column('Probability', '>')
+    ]
+
+    rows = []
+
+    for language, float_percentage in top_entries.items():
+        row = _create_language_row(language, float_percentage)
+        rows.append(row)
+
+    # Generate the table
+    table = _gen_table(columns, rows)
     return table
 
 #
 # Helper functions below.
 #
 
-def format_dictionary(dictionary: dict) -> str:
+def _format_dictionary(dictionary: dict) -> str:
     """
     Given a dictionary, e.g. { 'Title': 'Value'}, returns a printable
     string with the title left-aligned and value right-aligned. If the
@@ -242,12 +265,12 @@ def format_dictionary(dictionary: dict) -> str:
     for title, value in dictionary.items():
         # If the value is an integer, add comma separators for big numbers.
         if(isinstance(value, int)):
-            value = format_number(value)
+            value = _format_number(value)
         result += f'{title:<30}: {value:>10}' + '\n'
         
     return result
 
-def format_number(number: int) -> str:
+def _format_number(number: int) -> str:
     """
     Converts an integer to a human-readable string with commas separating
     thousands, millions, etc.
@@ -278,7 +301,7 @@ class Row:
         self.value_pair = value_pair
 
 
-def gen_table(columns: list[Column], rows: list[Row]) -> str:
+def _gen_table(columns: list[Column], rows: list[Row]) -> str:
     """
     Generates a formatted text table from a list of ColumnObj and RowObj.
     Do note that a lot of this code is adapted from realExercise1.ipynb
@@ -319,7 +342,7 @@ def gen_table(columns: list[Column], rows: list[Row]) -> str:
 
     return table
 
-def create_word_row(rank: int, word: str, occurrences: int, percentage: float) -> Row:
+def _create_word_row(rank: int, word: str, occurrences: int, percentage: float) -> Row:
     """
     Creates a RowObj containing rankings for a specific entry in a word frequency table.
 
@@ -341,7 +364,7 @@ def create_word_row(rank: int, word: str, occurrences: int, percentage: float) -
         "Percentage": formatted_percentage
     })
 
-def create_sentence_row(rank: int, length: int, occurrences: int) -> Row:
+def _create_sentence_row(rank: int, length: int, occurrences: int) -> Row:
     """
     Creates a RowObj containing rankings for a specific entry the
     sentence length distribution table.
@@ -358,10 +381,10 @@ def create_sentence_row(rank: int, length: int, occurrences: int) -> Row:
     return Row({
         "Rank": rank,
         "Amount of Words": length,
-        "Count of Sentences": occurrences
+        "Count of Sentences": formatted_occurrences
     })
 
-def create_character_row(char_type: str, occurrences: int, percentage: float) -> Row:
+def _create_character_row(char_type: str, occurrences: int, percentage: float) -> Row:
     """
     Creates a RowObj containing rankings for a specific entry in a
     character type distribution table.
@@ -380,4 +403,14 @@ def create_character_row(char_type: str, occurrences: int, percentage: float) ->
         "Type": char_type,
         "Occurrences": formatted_occurrences,
         "Percentage": formatted_percentage,
+    })
+
+def _create_language_row(language: str, float_percentage: float) -> Row:
+    """
+    
+    """
+    formatted_percentage = f"({(float_percentage*100):5.2f}%)"
+    return Row({
+        "Language": language,
+        "Probability": formatted_percentage
     })

@@ -5,8 +5,12 @@ stex_filing.py
 
 Author: Daniel Lind
 
-Defines the two classes which will be used to track text files,
+Defines the class which will be used to track text files,
 and store analysis data.
+
+Function Prefix Legend:
+    append_* : Store data in TextFile object
+    get_* : Return some value based on data in TextFile object
 
 """
 
@@ -111,6 +115,16 @@ class TextFile:
         ) = stats
 
         self.total_characters = sum(self.character_occurrences.values())
+        
+    def append_language_probabilities(self, stats: dict[str, float]) -> None:
+        """
+        Stores the results of a trigram-based language probability analysis.
+        
+        Arguments:
+            stats: sorted dictionary with key: language(str), value: probability(float)
+        """
+        self.language_probabilities = stats
+        self.most_likely_language = max(stats, key=stats.get)
 
     # ----------- DATA RETRIEVAL FUNCTIONS -----------
     def get_average_words_per_line(self, round_to: int = 3) -> float:
@@ -249,20 +263,3 @@ class TextFile:
             int(sorted_word_lengths[-1]),
             average
         )
-
-class FileInventory:
-    """
-    Class to hold HyTextFile objects.
-    Our quintessential tracker for files.
-    """
-
-    def __init__(self):
-        # Initialize as empty
-        self.files = []
-
-    def add_file(self, filepath) -> TextFile:
-        # Instantiate a HyTextFile, which requires the filepath argument,
-        # then add it to the list.
-        entry = TextFile(filepath)
-        self.files.append(entry)
-        return entry

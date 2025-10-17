@@ -5,7 +5,9 @@ stex_plotting.py
 Author: Daniel Lind 
 
 This file contains all functionality related to matplotlib.
-Warning - file contains sloppa.
+
+Function Prefix Legend:
+    plot_* : Generates and shows a matplotlib figure.
 
 """
 
@@ -217,6 +219,56 @@ def plot_character_analysis(file: stex.TextFile, top_n: int=10) -> None:
     ax2.set_aspect('equal') 
     ax2.axis('off')
 
+    # Display figure
+    plt.tight_layout()
+    plt.show()
+
+def plot_language_confidence(file: stex.TextFile, top_n: int = 5) -> None:
+    """
+    Plot the top-N language confidence scores as a bar chart.
+    Does not return value - shows matplotlib figure.
+
+    Arguments:
+        file: TextFile object
+        top_n: how many top matches to show (default 5)
+    """
+    confidences = file.language_probabilities
+    
+    if not confidences:
+        raise ValueError("No confidence scores provided.")
+
+    # Take the top N (or fewer if not enough items)
+    # We are, as customary, assuming this dictionary is already sorted
+    # by its values.
+    items = list(confidences.items())
+    top_items = items[:max(1, min(top_n, len(items)))]
+
+    # Separate names and values, convert to percentages
+    languages = []
+    scores_percentages = []
+
+    for lang, score in top_items:
+        languages.append(lang)
+        scores_percentages.append(float(score) * 100.0)
+
+
+    # Plot - only one column in this figure as opposed to other plots.
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(languages, scores_percentages, edgecolor='black') 
+
+    # Annotate each bar with percentage text above it
+    for i, bar in enumerate(bars):
+        pct = scores_percentages[i]
+        x_center = bar.get_x() + bar.get_width() / 2
+        y_top = bar.get_height()
+        offset = max(1.0, 0.02 * max(scores_percentages))
+        ax.text(x_center, y_top + offset, f"{pct:.1f}%", ha='center', va='bottom', fontsize=9)
+
+
+    # Stylize figure
+    ax.set_ylabel("Confidence (%)")
+    ax.set_title(f"Top {len(languages)} Language Matches")
+    
     # Display figure
     plt.tight_layout()
     plt.show()
