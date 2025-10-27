@@ -137,6 +137,26 @@ class TextFile:
         rounded = round(average, round_to)
         return rounded
 
+    def get_count_of_lowercase_and_capitalized_ascii(self) -> tuple[float, float]:
+        """
+        Returns a tuple of how many uppercase contra lowercase ASCII characters
+        appeared. Only supports standard English or Swedish alphabets..
+        """
+
+        lower_total = 0
+        upper_total = 0
+        
+        ASCII_LOWER = set('abcdefghijklmnopqrstuvwxyzåäö')
+        ASCII_UPPER = set('ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ')
+    
+        for character, count in self.character_occurrences.items():
+            if character.islower() and character in ASCII_LOWER:
+                lower_total += count
+            elif character.isupper() and character in ASCII_UPPER:
+                upper_total += count
+    
+        return lower_total, upper_total
+
     def get_average_characters_per_word(self, round_to: int = 3) -> float:
         """
         Returns the average characters per word, rounded to round_to decimals.

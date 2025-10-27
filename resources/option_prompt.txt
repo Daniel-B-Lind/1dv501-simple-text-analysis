@@ -14,10 +14,7 @@
 [W]ord Frequency Analysis
 [S]entence Analysis
 [C]haracter Analysis
-
--= Advanced Analysis =-
 [I]dentify Language
 
--= Perform Comparative Analysis =-
-[1] Basic Statistics of 2 files
-[2] Word Frequency Comparison
+-= Perform Multi-File Analysis =-
+[M]easure Similarity in Word Distribution between *2* files

@@ -362,9 +362,6 @@ def invoke_find_closest_trigram_sample(trigrams: dict) -> dict[str, float]:
     for lang_sample_path in paths:
         try:
             candidate_trigram_sample = deserializer.deserialize_from_file(lang_sample_path)
-        except FileNotFoundError:
-            # what the fuck? TODO: ehh????
-            raise FileNotFoundError("Despite appearing in a wildcard, a file was not found. This confuses me.")
         except JSONDecodeError:
             # File was not valid json, ignore it!
             continue
@@ -376,7 +373,6 @@ def invoke_find_closest_trigram_sample(trigrams: dict) -> dict[str, float]:
         # amount of trigrams in the file.
         normalized_candidate = _normalize_dictionary(candidate_trigram_sample)
         
-        # TODO: oof.
         language_name = lang_sample_path.stem.replace("lang_sample_", "")
         
         # Use cosine similarity to map the similarity of the candidate
@@ -389,6 +385,22 @@ def invoke_find_closest_trigram_sample(trigrams: dict) -> dict[str, float]:
     sorted_results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
     
     return sorted_results
+
+def invoke_cosine_similarity(dictionary_a: dict[any, int], dictionary_b: dict[any, int]) -> float:
+    """
+    Given two dictionaries of type [x, int], this will normalize them and perform
+    cosine similarity analysis between, returning the final similarity value.
+    
+    Arguments:
+        dictionary_a: dict[any, int]
+        dictionary_b: dict[any, int]
+    
+    Returns:
+        Similarity.
+    """
+    normalized_dict_a = _normalize_dictionary(dictionary_a)
+    normalized_dict_b = _normalize_dictionary(dictionary_b)
+    return _cosine_similarity(normalized_dict_a, normalized_dict_b)
 
 # helper functions
 def _normalize_dictionary(dictionary: dict) -> dict:
@@ -413,8 +425,31 @@ def _cosine_similarity(a: dict, b: dict) -> float:
     Returns:
         float of distribution similarity
     """
-    keys = set(a.keys()) | set(b.keys())
-    dot = sum(a.get(k, 0) * b.get(k, 0) for k in keys)
-    norm_a = math.sqrt(sum(v*v for v in a.values()))
-    norm_b = math.sqrt(sum(v*v for v in b.values()))
-    return dot / (norm_a * norm_b)
+    # Get sets of every unique key in each dictionary.
+    keys_in_a = set(a.keys())
+    keys_in_b = set(b.keys())
+    all_keys = keys_in_a.union(keys_in_b)
+
+    # Compute the dot product of the two vectors
+    dot_product = 0.0
+    for key in all_keys:
+        value_a = a.get(key, 0)
+        value_b = b.get(key, 0)
+        dot_product += value_a * value_b
+
+    # Compute the magnitude of vector A...
+    sum_of_squares_a = 0.0
+    for value in a.values():
+        sum_of_squares_a += value * value
+    norm_a = math.sqrt(sum_of_squares_a)
+
+    # ...and the magnitude of vector B
+    sum_of_squares_b = 0.0
+    for value in b.values():
+        sum_of_squares_b += value * value
+    norm_b = math.sqrt(sum_of_squares_b)
+
+    # Compute final cosine similarity value
+    cosine_similarity_value = dot_product / (norm_a * norm_b)
+
+    return cosine_similarity_value

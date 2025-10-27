@@ -68,7 +68,7 @@ def fetch_sentence_statistics(file: stex.TextFile) -> str:
         'Average words per sentence': f'{average}',
         'Shortest sentence': f'{_format_number(len(shortest_sentence))} words',
         'Longest sentence': f'{_format_number(len(longest_sentence))} words', 
-        '': '',
+        '': '', # Blank line, for readability.
         'Shortest sentence text': f'"{shortest_sentence}"',
         'Longest sentence text': f'"{longest_sentence}"', 
     }
@@ -80,6 +80,12 @@ def fetch_character_type_distribution_table(file: stex.TextFile) -> str:
     """
     
     """
+    
+    lowercase_count, uppercase_count = file.get_count_of_lowercase_and_capitalized_ascii()
+    # Even though there are likely to be more characters (non-ASCII),
+    # stored as file.letter_count, we only want to consider the total 
+    # of the letters we actually care about the casing of.
+    total_ascii_casing = lowercase_count + uppercase_count 
     
     stats = {
         'Letters': file.letter_count,
@@ -105,8 +111,23 @@ def fetch_character_type_distribution_table(file: stex.TextFile) -> str:
         row = _create_character_row(char_type, occurrences, percentage)
         rows.append(row)
     
+    # Add miscellaneous casing rows which don't play nice with total_characters
+    casing_stats = {
+        'Uppercase': uppercase_count,
+        'Lowercase': lowercase_count
+    }
+    
+    rows_b = []
+    
+    for casing_type, count in casing_stats.items():
+        percentage = (count / total_ascii_casing) * 100
+        
+        row = _create_character_row(casing_type, count, percentage)
+        rows_b.append(row)
+    
     table = _gen_table(columns, rows)
-    return table
+    table_b = _gen_table(columns, rows_b)
+    return table + '\n' + table_b
 
 
 def fetch_word_frequency_table(file: stex.TextFile, top_n_words: int = 10) -> str:
@@ -239,6 +260,25 @@ def fetch_language_guess_table(file: stex.TextFile, top_n_languages: int = 5) ->
     # Generate the table
     table = _gen_table(columns, rows)
     return table
+
+def fetch_similarity_two_files(similarity: float) -> str:
+    """
+    This 'fetch' is unique because it takes a value directly,
+    because the result of a cosine-similarity between two files
+    is not stored in either file.
+    
+    With that said, given a computed similarity, this produces a
+    printable string.
+    
+    Arguments:
+        similarity: cosine similarity vlaue between two text files, float
+    
+    Returns:
+        Printable string
+    """
+    percentage_printable = f'{similarity*100}%'
+    return f'Compared files. Similarity: {percentage_printable}'
+    
 
 #
 # Helper functions below.

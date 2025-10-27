@@ -24,151 +24,10 @@ import stex_json as serializer   # ...contains functions to serialize/deserializ
 import stex_analysis as analyse
 import stex_plotting as plot # ...contains all matplotlib shenanigans
 import stex_pretty as pretty  # ...to get human-readable results
+import stex_tui as tui # ...for terminal user interface
+from stex_exceptions import OperationCancelled # ...custom exception
 
-# Custom exception 
-class OperationCancelled(Exception):
-    """
-    Raised when a user explicitly chooses to abort or cancel an operation 
-    mid-execution.
-    """
-    def __init__(self, message="Operation was cancelled by the user."):
-        self.message = message
-        super().__init__(self.message)
-
-def generate_stylized_content_box(header_text: str, padding: int = 2) -> str:
-    """
-    Generates a unicode header for the menu prompt.
-    Notice: if header_text exceeds screen width, this may cause graphical issues.
-
-    Args:
-        header_text: Contents of header.
-        padding: Amount of whitespace on either side of the header_text.
-
-    Returns:
-        multiline string of the header, suitable to be passed into print() immediately.
-    """
-    # This may have trouble displaying on Jupyter.
-    # For now, I am testing this in VSCode.
-    # TODO: Evaluate viability on JupyterHub.
-
-    # Split header text on newlines
-    text_split = header_text.split('\n')
-
-    # Find longest line
-    length_of_longest = 0
-    for line in text_split:
-        if len(line) > length_of_longest:
-            length_of_longest = len(line)
-    
-    #Calculate required width, not accounting for frame edges
-    width = length_of_longest + (padding * 2)
-
-    # Contents of header are our return value
-    header = '╔' + ('═' * width) +  '╗' + '\n'
-
-    # For every line, calculate required extra padding and append to final string
-    # TODO: This is kind of ugly, should be using f-strings instead..
-    for line in text_split:
-        header += '║' + (' ' * padding) + line + (' ' * (width - padding - len(line))) + '║' + '\n'
-    header += '╚' + ('═' * width) +  '╝' + '\n'
-
-    return header
-
-def get_loaded_file_names(inventory: list[stex.TextFile]) -> tuple[str] | None:
-    """
-    Returns the names of files which are currently selected in a tuple.
-    Returns None if no file selected.
-    """
-    # No files? No tuples. 
-    if len(inventory) < 1:
-        return None
-    
-    # Get the name of each file in a list
-    names = []
-    for file in inventory:
-        names.append(file.shortname)
-    
-    return tuple(names)
-    
-
-def print_menu_prompt(options_menu_content: str, inventory: list[stex.TextFile]):
-    # TODO: base width of dividing lines on intro header?
-    
-    # Generate content box for the possibly options. 
-    options_menu_content_box = generate_stylized_content_box(options_menu_content)
-    print(options_menu_content_box)
-
-    # Print status (i.e. what files are loaded)
-    current_selected = get_loaded_file_names(inventory)
-    status = "No file is selected. Choose one by selecting <L>." if current_selected == None else f"Currently working with:\n{", ".join(current_selected)}"
-    print(status)
-
-def normalize_user_input(userstr: str) -> str | None:
-    """
-    Helper function.
-    When passed a user input from the main menu loop,
-    this will normalize it to be lowercase and a single character.
-    """
-    # For now, let's allow inputs with a length over 1.
-    # This could be useful, since 'Quit' will resolve to 'q' and that's all we care about.
-    # On the other hand this could cause confusion, since typing 'quaaludes' will also quit the program...
-    
-    lowercase_string = userstr.lower()
-
-    if len(lowercase_string) < 1:
-        # Blank input, ignore
-        return None
-    
-    # First character of user string
-    return lowercase_string[0]
-
-def get_prompt_file_contents(template_path: str) -> str:
-    """
-    Reads a prompt/template file from disk and returns its contents,
-    stripping out comments. Raises error if file does not exist
-
-    Arguments:
-        template_path: path to the place on disk where the template file is expected to be.
-    
-    Returns:
-        Contents of file located at template_path, with comments stripped.
-    """
-    # As a sanity check, make sure the file exists.
-    # If the user deleted it, y'know, break.
-    # TODO: 'Real' error handling.
-    if not os.path.isfile(template_path):
-        raise FileNotFoundError(f" *** {template_path} is missing, aborting! *** ")
-    
-    # Since we can reasonable expect the prompt file to be small,
-    # we can safely read it into memory.
-    f = open(template_path, 'r', encoding='utf-8')
-    options_menu_content_raw = f.read()
-    f.close()
-
-    # Now, let's flatten comments that may have been in the file.
-    options_menu_content = ''
-    for line in options_menu_content_raw.split('\n'):
-        if len(line) < 1 or line[0] != '#':
-            options_menu_content += line + '\n'
-
-    return options_menu_content
-
-def load_file_prompt(inventory: list[stex.TextFile]):
-    loaded_file = None
-    while loaded_file == None:
-        user_input = input("Enter path to text file:")
-        try:
-            candidate_file = stex.TextFile(user_input)
-            inventory.append(candidate_file)
-            loaded_file = candidate_file
-        except FileNotFoundError:
-            print("No such file could be found.")
-        except ValueError:
-            print("Please provide a valid .TXT file")
-        except Exception as e:
-            print("Please try again. An unexpected error has occurred: ", e)
-    
-
+def _analyze_all(loaded_file: stex.TextFile) -> None:
     print("Successfully loaded file! Starting analysis.")
     
     print(" [1] Performing basic analysis... ", end='')
@@ -198,119 +57,30 @@ def load_file_prompt(inventory: list[stex.TextFile]):
     language_probabilities = analyse.invoke_find_closest_trigram_sample(trigram_statistics)
     loaded_file.append_language_probabilities(language_probabilities)
     print("done!")
-    
+
     print("All analysis passes completed without issue.")
-    return
 
-def unload_file(inventory: list[stex.TextFile], file_to_remove: stex.TextFile) -> str:
-    # Remove from inventory
-    try:
-        inventory.remove(file_to_remove)
-    except:
-        return "An unexpected error occurred while attempting to unload that file."
+
+def _normalize_user_input(userstr: str) -> str | None:
+    """
+    Helper function.
+    When passed a user input from the main menu loop,
+    this will normalize it to be lowercase and a single character.
+    """
+    # For now, let's allow inputs with a length over 1.
+    # This could be useful, since 'Quit' will resolve to 'q' and that's all we care about.
+    # On the other hand this could cause confusion, since typing 'quaaludes' will also quit the program...
     
-    return 'Successfully unloaded file!'
+    lowercase_string = userstr.lower()
 
-def save_file_prompt(content: str) -> str:
-    """
-    Shows an interactive prompt which asks what file to save the contents of 'content' in.
-    If the user provides a valid path and doesn't abort, the file will be saved.
+    if len(lowercase_string) < 1:
+        # Blank input, ignore
+        return None
     
-    Arguments:
-        content: file contents
-    
-    Returns:
-        Chosen path to saved file.
-    """
-    
-    chosen_path = ''
-    while chosen_path == '':
-        # Prompt for file path.
-        user_input = input('Please enter the path where you wish to export the file (e.g., /tmp/working_data.json). Enter "Cancel" to abort.\n> ')
-        if user_input.lower() == 'cancel':
-            raise OperationCancelled
+    # First character of user string
+    return lowercase_string[0]
 
-        # If the file already exists, confirm whether or not they want to override it.
-        if os.path.exists(user_input):
-            verification_input = input(f'There is already a file at {user_input}. Would you like to replace it? (y/N)\n> ')
-            if not verification_input.lower() == 'y':
-                continue
-        
-        chosen_path = user_input
-    
-    # Write data to file.
-    with open(chosen_path, "w", encoding="utf-8") as f:
-        f.write(content)
-    
-    return chosen_path
-
-def select_file_prompt(inventory: list[stex.TextFile]) -> stex.TextFile:
-    """
-    A generic function called from any other function which needs the user
-    to select one of the currently loaded files via an interactive prompt.
-
-    Returns:
-        HyTextFile object.
-    """
-    print("==========================")
-    print("C. Cancel Operation")
-
-    # List every tracked file and ask them which one to remove.
-    number_of_files = len(inventory)
-    for i in range(number_of_files):
-        print(f"{i}. {inventory[i].shortname}")
-        
-    print("==========================")
-    user_choice = -1
-    # Loop until the user provides a valid choice which is inbounds
-    while user_choice < 0 or user_choice >= number_of_files:
-        user_input = input("Enter index of file to choose >")
-
-        # Special case - if the user aborts... abort.
-        if user_input.lower() == 'c':
-            raise OperationCancelled
-        
-        # Otherwise, make sure it's in range (keep looping if it isn't)
-        try:
-            user_choice = int(user_input)
-            if user_choice >= number_of_files or user_choice < 0:
-                raise ValueError
-        except:
-            print("You must select an index corresponding to a loaded file.")
-    return inventory[user_choice]
-
-def prepare_to_request_result(inventory: list[stex.TextFile]) -> stex.TextFile:
-    """
-    Query the user on which file they want the results of. If only one file is available,
-    automatically chooses it.
-
-    If no files are loaded, returns None.
-    """
-
-    if len(inventory) == 0:
-        # There's nothing to return the results of...
-        raise ValueError("Inventory contains no HyTextFile objects!")
-    elif len(inventory) == 1:
-        # If there's only a single loaded file, we don't want to bother the user since
-        # they only have one choice anyway.
-        return inventory[0]
-
-    # Alright, if we're here, we do actually have to prompt the user.
-    return select_file_prompt(inventory)
-
-def list_text_files() -> str:
-    """
-    Lists the files in the current working directory and returns a string
-    of all files ending in .txt, separated by newline
-    """
-    txt_files = []
-
-    for path in Path('.').rglob('*.txt'):
-        txt_files.append(str(path))
-
-    return '\n'.join(txt_files)
-
-def execute(master_file_inventory: list[stex.TextFile], user_choice: str):
+def execute(master_file_inventory: list[stex.TextFile], user_choice: str) -> None:
     """
     Primary function to execute user's desired effects.
 
@@ -331,18 +101,16 @@ def execute(master_file_inventory: list[stex.TextFile], user_choice: str):
             c = print char analysis
             
             i = identify language
-            
-            1 = compare 2 files
             2 = word frequency comparison 2 files
 
     Does not return a value - delegates action and prints to screen.
     """
     
     # If the operation we're planning to do requires a file, select one.
-    CHOICES_REQUIRING_LOADED_FILE = set('uebwsci')
+    CHOICES_REQUIRING_LOADED_FILE = set('uebwmsci')
     if user_choice in CHOICES_REQUIRING_LOADED_FILE:
         try:
-            selected_file = prepare_to_request_result(master_file_inventory)
+            selected_file = _prepare_to_request_result(master_file_inventory)
         except OperationCancelled:
             print("Cancelled.")
             return
@@ -353,16 +121,23 @@ def execute(master_file_inventory: list[stex.TextFile], user_choice: str):
     match(user_choice):
         # - Meta -
         case 'd': # Display files in current directory
-            text_files = list_text_files()
+            text_files = tui.list_text_files()
             print(text_files)
             return
 
         case 'l': # Load file
-            load_file_prompt(master_file_inventory)
+            try:
+                loaded_file = tui.load_file_prompt(master_file_inventory)
+            except OperationCancelled:
+                print("Cancelled.")
+                return
+            
+            # Performs all exercise passes and saves data ("ingests" file)
+            _analyze_all(loaded_file)
             return
 
         case 'u': #Unload file
-            result = unload_file(master_file_inventory, selected_file)
+            result = _unload_file(master_file_inventory, selected_file)
             print(result)
             return
 
@@ -372,7 +147,7 @@ def execute(master_file_inventory: list[stex.TextFile], user_choice: str):
             print("done!")
             
             try:
-                result = save_file_prompt(full_data_dump)
+                result = tui.save_file_prompt(full_data_dump)
                 print(f"Successfully exported data to file at {result}!")
             except OperationCancelled:
                 print("Cancelled.")
@@ -431,10 +206,55 @@ def execute(master_file_inventory: list[stex.TextFile], user_choice: str):
             print(language_probability_table)
             plot.plot_language_confidence(selected_file)
             return
+        
+        case 'm': # Measure similarity between unique word distribution
+            # Note - while we already have a selected_file, this will require a 2nd selection.
+            print(f'Select file to compare with {selected_file.path}:')
+            try:
+                selected_file_b = tui.select_file_prompt(master_file_inventory)
+            except OperationCancelled:
+                print('Cancelled.')
+                return
+            
+            # Minor violation - we're gonna make a call directly to analyse.invoke[...] here,
+            # because this is by nature not something we can possibly do during ingest.
+            cosine_similarity = analyse.invoke_cosine_similarity(selected_file.word_occurrences, selected_file_b.word_occurrences)
+            result = pretty.fetch_similarity_two_files(cosine_similarity)
+            print(result)
 
         case _:
             print('Invalid selection or option not yet implemented.')
             return
+
+
+def _prepare_to_request_result(inventory: list[stex.TextFile]) -> stex.TextFile:
+    """
+    Query the user on which file they want the results of. If only one file is available,
+    automatically chooses it.
+
+    If no files are loaded, returns None.
+    """
+
+    if len(inventory) == 0:
+        # There's nothing to return the results of...
+        raise ValueError("Inventory contains no HyTextFile objects!")
+    elif len(inventory) == 1:
+        # If there's only a single loaded file, we don't want to bother the user since
+        # they only have one choice anyway.
+        return inventory[0]
+
+    # Alright, if we're here, we do actually have to prompt the user.
+    return tui.select_file_prompt(inventory)
+
+def _unload_file(inventory: list[stex.TextFile], file_to_remove: stex.TextFile) -> str:
+    # Remove from inventory
+    try:
+        inventory.remove(file_to_remove)
+    except:
+        return "An unexpected error occurred while attempting to unload that file."
+    
+    return 'Successfully unloaded file!'
+
 
 def menu_loop(main_inventory: list[stex.TextFile]):
     """
@@ -443,19 +263,19 @@ def menu_loop(main_inventory: list[stex.TextFile]):
     # Read the contents of option_prompt.txt into a cached options_menu_content,
     # to avoid reading the file every time we print the menu.
     template_path = 'resources/option_prompt.txt'
-    options_menu_content = get_prompt_file_contents(template_path)
+    options_menu_content = tui.get_prompt_file_contents(template_path)
 
     user_choice = ''
     
     # Quit if the user decides to abort program loop.
     while user_choice != 'q':
         try:
-            print_menu_prompt(options_menu_content, main_inventory)
+            tui.print_menu_prompt(options_menu_content, main_inventory)
 
             # Prompt user for selection until it's not blank.
             user_input = None
             while user_input == None:
-                user_input = normalize_user_input(input('> '))
+                user_input = _normalize_user_input(input('> '))
             
             # Prepare "user_choice"
             user_choice = user_input
@@ -473,8 +293,8 @@ def main():
     """
     Program entrypoint.
     """
-    welcome_prompt = get_prompt_file_contents("resources/welcome_prompt.txt")
-    intro_header = generate_stylized_content_box(welcome_prompt)
+    welcome_prompt = tui.get_prompt_file_contents("resources/welcome_prompt.txt")
+    intro_header = tui.generate_stylized_content_box(welcome_prompt)
     
     print(intro_header)
 
