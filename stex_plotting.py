@@ -56,7 +56,7 @@ def plot_basic_analysis(file: stex.TextFile) -> None:
     # Avoiding label/% overlap in pie charts was a rather annoying problem.
     # I adapted some results from https://stackoverflow.com/questions/23577505/how-to-avoid-overlapping-of-labels-autopct-in-a-pie-chart
     # and ultimately decided to use a legend for wedge names and substitute the labels with percentages.
-    # TODO: Accessibility issue, as this relies on the user being able to tell colors apart.
+    # WARN: Accessibility issue, as this relies on the user being able to tell colors apart.
     wedges, _, _= ax2.pie(
         pie_sizes,
         autopct='%1.1f%%', # percentages rounded to 1 decimal point
@@ -107,6 +107,9 @@ def plot_word_analysis(file: stex.TextFile, top_n: int = 10) -> None:
     
     # Calculate bins for the histogram.
     # If there are no word lengths (somehow), use a dummy array.
+    # Note - using arange here is.. dubious. We're not filling our 
+    # range with floats. This is a holdover from some copied code.
+    # Buuut it works and might be faster, so there's no point in downgrading.
     bins = np.arange(1, lengths.max() + 2) if lengths.size > 0 else np.array([0, 1])
 
     # Add histogram to figure's 2nd column
@@ -133,11 +136,14 @@ def plot_sentence_analysis(file: stex.TextFile, top_n: int = 10) -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5))
 
     sentence_length_dictionary = file.sentence_length_distribution
+    # Numpy array used because it provides lengths.min and lengths.max
+    # later on. This could be done without numpy but it'd be way uglier.
+    # For once I had to compromise only readability.
     lengths = np.array(list(sentence_length_dictionary.keys()))
     counts = np.array(list(sentence_length_dictionary.values()))
     
-    # Calculate bins for the histogram
-    samples = np.repeat(lengths, counts)
+    # Calculate bins for the histogram.
+    # Note - 'np.arange' is like 'range' but float compatible. 
     bins = np.arange(lengths.min() - 0.5, lengths.max() + 1.5, 1.0)
 
     # Add histogram to figure's 1st column 

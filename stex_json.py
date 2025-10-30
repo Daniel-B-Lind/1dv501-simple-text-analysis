@@ -70,7 +70,7 @@ def serialize_word_frequency_statistics(file: stex.TextFile) -> dict:
         file: TextFile object to serialize the statistics of.
 
     Returns:
-        JSON formatted string of statistics
+        JSON formatted string of word occurrences and word length occurrences.
     """
 
     # Dictionary
@@ -83,7 +83,14 @@ def serialize_word_frequency_statistics(file: stex.TextFile) -> dict:
 
 def serialize_sentence_statistics(file: stex.TextFile) -> dict:
     """
-    
+    Fetches the stored sentence statistics of a TextFile.
+
+    Arguments:
+        file: TextFile object to serialize the sentence statistics of.
+
+    Returns:
+        JSON formatted dictionary containing sentence count, longest and shortest sentences,
+        and a distribution of sentence lengths.
     """
     
     result = {
@@ -105,7 +112,14 @@ def serialize_sentence_statistics(file: stex.TextFile) -> dict:
 
 def serialize_character_statistics(file: stex.TextFile) -> dict:
     """
-    
+    Fetches the stored character statistics of a TextFile.
+
+    Arguments:
+        file: TextFile object to serialize the character statistics of.
+
+    Returns:
+        JSON formatted dictionary containing total counts of letters, digits, punctuation,
+        spaces, other characters, and a mapping of characters to number of occurrences
     """
     
     result = {
@@ -125,7 +139,14 @@ def serialize_character_statistics(file: stex.TextFile) -> dict:
 
 def serialize_language_probabilities(file: stex.TextFile) -> dict:
     """
-    
+    Fetches the detected language probabilities of a TextFile.
+
+    Arguments:
+        file: TextFile object to serialize language detection results of.
+
+    Returns:
+        JSON formatted dictionary containing the most likely language
+        and all detected language probabilities.
     """
     
     result = {

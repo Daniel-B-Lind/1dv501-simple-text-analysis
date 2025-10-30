@@ -40,7 +40,9 @@ def fetch_basic_statistics(file: stex.TextFile) -> str:
 
 def fetch_word_length_statistics(file: stex.TextFile) -> str:
     """
-    
+    Returns a printable pretty string containing containing
+    word length statistics such as the shortest word length, 
+    longest word length, and the average word length. 
     """
     
     shortest_length, longest_length, average_length = file.get_word_length_statistics()
@@ -56,7 +58,9 @@ def fetch_word_length_statistics(file: stex.TextFile) -> str:
 
 def fetch_sentence_statistics(file: stex.TextFile) -> str:
     """
-
+    Returns a printable pretty string of sentence statistics
+    (total sentences, average words per sentence, shortest sentence (length & content),
+    longest sentence (length & content))
     """
     sentence_count = file.total_sentences
     average = file.get_average_words_per_sentence(2) # Rounding to 2 decimals
@@ -78,7 +82,9 @@ def fetch_sentence_statistics(file: stex.TextFile) -> str:
 
 def fetch_character_type_distribution_table(file: stex.TextFile) -> str:
     """
-    
+    Returns a printable string containing a table which shows
+    the distribution of character types (letters, digits, spaces, punctuation, other)
+    in the provided TextFile object.
     """
     
     lowercase_count, uppercase_count = file.get_count_of_lowercase_and_capitalized_ascii()
@@ -240,6 +246,11 @@ def fetch_common_letters_list(file: stex.TextFile, top_n_letters: int = 10) -> s
 
 def fetch_language_guess_table(file: stex.TextFile, top_n_languages: int = 5) -> str:
     """
+    Generates a table containing the most probable language matches
+    for the text.
+    
+    Arguments:
+        top_n_languages: The amount of probabilities to show (descending from most probable match)
     
     Returns:
         Printable string
@@ -447,7 +458,14 @@ def _create_character_row(char_type: str, occurrences: int, percentage: float) -
 
 def _create_language_row(language: str, float_percentage: float) -> Row:
     """
+    Creates a RowObj for an entry in the language probability table.
     
+    Arguments:
+        language: string of the language name
+        float_percentage: float repesentation of the match for that particular language (E.g. 0.8624)
+    
+    Returns:
+        Row
     """
     formatted_percentage = f"({(float_percentage*100):5.2f}%)"
     return Row({

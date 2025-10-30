@@ -18,9 +18,8 @@ def generate_stylized_content_box(header_text: str, padding: int = 2) -> str:
     Returns:
         multiline string of the header, suitable to be passed into print() immediately.
     """
-    # This may have trouble displaying on Jupyter.
-    # For now, I am testing this in VSCode.
-    # TODO: Evaluate viability on JupyterHub.
+    # This may have trouble displaying on some terminals,
+    # but it seems to be fine on JupyterHub.
 
     # Split header text on newlines
     text_split = header_text.split('\n')

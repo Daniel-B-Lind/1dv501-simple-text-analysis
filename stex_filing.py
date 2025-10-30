@@ -21,15 +21,36 @@ import numpy as np
 class TextFile:
     """
     This class represents the attributes of a text file undergoing
-    analysis. It holds analysis results, filepath, et cetera.
+    analysis. It holds analysis results, filepath, et cetera.,
+    while also containing methods to get additional statistics
+    from saved results.
     """
     
     def __init__(self, filepath: str) -> None:
+        # Before creating an instance of this object, do some basic sanity checks.
         if(not os.path.exists(filepath)):
             raise FileNotFoundError
         if(not filepath.lower().endswith('.txt')):
-            # TODO: This is fragile. What's stopping a silly guy from renaming a generic data file to .txt?
-            raise ValueError("File does not appear to be a text file.")
+            raise ValueError("Extension mismatch. Please provide a text file.")
+        
+        # Just because a file ends with .txt doesn't mean it's valid text.
+        # To test it further, we'll open the file as UTF-8 and read the first
+        # few characters. 
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                # This is technically kind of janky, but in any case,
+                # if the final contains binary data in the first 512
+                # characters, we'll flag it as invalid.
+                #
+                # This is also not foolproof. The first 512 bytes could
+                # be perfectly valid while the rest is a corrupted mess.
+                # Short of reading through the entire file ahead of time,
+                # there's not a lot to do about that, so we'll have to
+                # rely on it being caught later.
+                f.read(512) 
+        except UnicodeDecodeError:
+            raise ValueError("File is not valid UTF-8 text. Please provide a valid text file.")
+        
         self.path = filepath
         self.shortname = os.path.basename(self.path)
 

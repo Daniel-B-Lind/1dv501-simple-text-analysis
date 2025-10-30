@@ -55,31 +55,26 @@ def invoke_basic_statistics(file: stex.TextFile) -> tuple:
     # Note: errors='replace' will replace faulty unicode characters with a fallback character.
     with open(file.path, 'r', encoding='utf-8', errors='replace') as f:
         for line in f:
-            try:
-                # Remove trailing newline but keep internal spaces
-                line = line.rstrip('\n')
+            # Remove trailing newline but keep internal spaces
+            line = line.rstrip('\n')
 
-                file_number_of_lines += 1
+            file_number_of_lines += 1
 
-                # Split into words (whitespace delimiter)
-                words = line.split()
-                line_number_of_words = len(words)
+            # Split into words (whitespace delimiter)
+            words = line.split()
+            line_number_of_words = len(words)
 
-                # Count spaces. I'm also going to count each
-                # line itself as a space (LF) to better approximate actual
-                # character counts. CRLF need not apply - do not use Windows.
-                file_number_of_spaces += (line.count(' ') + 1)
+            # Count spaces. I'm also going to count each
+            # line itself as a space (LF) to better approximate actual
+            # character counts. CRLF need not apply - do not use Windows.
+            file_number_of_spaces += (line.count(' ') + 1)
 
-                # Count characters in all words (excluding spaces)
-                line_number_of_characters = sum(len(word) for word in words)
+            # Count characters in all words (excluding spaces)
+            line_number_of_characters = sum(len(word) for word in words)
 
-                # Apply local variables for this line to the file scope
-                file_number_of_words += line_number_of_words
-                file_number_of_characters += line_number_of_characters
-            except Exception as e:
-                # Very unlikely for an exception to occur here.
-                # If one does, it's probably safer to just pass it up the chain than to continue iterating.
-                raise e
+            # Apply local variables for this line to the file scope
+            file_number_of_words += line_number_of_words
+            file_number_of_characters += line_number_of_characters
 
     # Return final ordered tuple
     return (
@@ -113,6 +108,8 @@ def invoke_word_frequency_statistics(file: stex.TextFile) -> tuple[dict[str,int]
     # to consider substrings or rebuild each word based by comparing
     # against VALID_CHARS would be horribly slow. For this reason,
     # we'll use a compiled Regex.
+    # You may ask "why not a frozen set like you've used elsewhere?
+    # and that's a great question. Anyways.
     pattern = re.compile(f"[^{VALID_CHARS}]+") 
 
     # Key: word in lowercase

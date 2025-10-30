@@ -223,7 +223,7 @@ def execute(master_file_inventory: list[stex.TextFile], user_choice: str) -> Non
             print(result)
 
         case _:
-            print('Invalid selection or option not yet implemented.')
+            print('Invalid selection.')
             return
 
 
