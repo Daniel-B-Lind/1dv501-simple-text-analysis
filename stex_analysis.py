@@ -27,7 +27,6 @@ import stex_filing as stex
 import stex_json as deserializer
 import string
 import math
-import re
 from pathlib import Path
 from json import JSONDecodeError
 
@@ -102,15 +101,7 @@ def invoke_word_frequency_statistics(file: stex.TextFile) -> tuple[dict[str,int]
     # This can be expanded on to support other languages, or be
     # adjusted more granularly depending on what characters one
     # considers "part of a word."
-    VALID_CHARS = "abcdefghijklmnopqrstuvwxyzåäö'-"
-
-    # Since we are dealing with 'big data', the simple solution
-    # to consider substrings or rebuild each word based by comparing
-    # against VALID_CHARS would be horribly slow. For this reason,
-    # we'll use a compiled Regex.
-    # You may ask "why not a frozen set like you've used elsewhere?
-    # and that's a great question. Anyways.
-    pattern = re.compile(f"[^{VALID_CHARS}]+") 
+    VALID_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzåäö'-")
 
     # Key: word in lowercase
     # Value: number of occurrences
@@ -125,9 +116,15 @@ def invoke_word_frequency_statistics(file: stex.TextFile) -> tuple[dict[str,int]
         for line in f:
             words = line.split()
             for word in words:
-                # Normalize by uncapitalizing and subsequently regexing
+                # Normalize by uncapitalizing and subsequently checking against frozen set.
                 word = word.lower()
-                clean_word = pattern.sub('', word)
+                
+                # NOTE: This used to be a regex check until constrained.
+                # Quote: "Do everything you can to avoid regex" -Tobias Andersson Gidlund (2025-10-31 10:15AM GMT+1)
+                clean_word = "".join(
+                    char for char in word if char in VALID_CHARS
+                )
+                
                 if clean_word:
                     # Append to both dictionaries
                     word_count[clean_word] = word_count.get(clean_word, 0) + 1
