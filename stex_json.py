@@ -167,6 +167,6 @@ def deserialize_from_file(path: str) -> dict:
     Returns:
         Dictionary.
     """
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding='utf-8', errors='replace') as file:
         data = json.load(file)
     return data

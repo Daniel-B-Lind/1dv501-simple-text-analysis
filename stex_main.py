@@ -101,7 +101,7 @@ def execute(master_file_inventory: list[stex.TextFile], user_choice: str) -> Non
             c = print char analysis
             
             i = identify language
-            2 = word frequency comparison 2 files
+            m = word frequency comparison 2 files
 
     Does not return a value - delegates action and prints to screen.
     """
@@ -237,7 +237,7 @@ def _prepare_to_request_result(inventory: list[stex.TextFile]) -> stex.TextFile:
 
     if len(inventory) == 0:
         # There's nothing to return the results of...
-        raise ValueError("Inventory contains no HyTextFile objects!")
+        raise ValueError("Inventory contains no TextFile objects!")
     elif len(inventory) == 1:
         # If there's only a single loaded file, we don't want to bother the user since
         # they only have one choice anyway.
